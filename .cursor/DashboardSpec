@@ -1,0 +1,548 @@
+# FitTrack Dev Handoff
+## Dashboard Tab - Final Specification
+
+---
+
+# 🥇 Component Breakdown with States
+
+## 1. Header
+
+**Component Name:** `Header`
+
+**Props:**
+| Prop | Type | Required | Description |
+|------|------|----------|-------------|
+| date | Date | Yes | Current date to display |
+
+**States:**
+| State | Behavior |
+|-------|----------|
+| Default | Shows formatted date (e.g., "Wednesday, Dec 25") |
+
+**Notes:**
+- Date format: `weekday long, month short, day numeric`
+- No loading/error states needed (always has data)
+
+---
+
+## 2. CycleBadge
+
+**Component Name:** `CycleBadge`
+
+**Props:**
+| Prop | Type | Required | Description |
+|------|------|----------|-------------|
+| phase | `'menstrual' \| 'follicular' \| 'ovulation' \| 'luteal'` | Yes | Current cycle phase |
+| day | number | Yes | Day within current phase |
+
+**States:**
+| State | Behavior |
+|-------|----------|
+| Default | Shows pill with droplet icon + "Phase · Day X" |
+| Empty/Not Set | Hide component entirely (don't show placeholder) |
+
+**Notes:**
+- Capitalize phase name in display
+- Icon: Lucide `Droplet`, filled
+
+---
+
+## 3. CalorieCard
+
+**Component Name:** `CalorieCard`
+
+**Props:**
+| Prop | Type | Required | Description |
+|------|------|----------|-------------|
+| consumed | number | Yes | Calories consumed today |
+| goal | number | Yes | Daily calorie goal |
+
+**Computed:**
+- `remaining = goal - consumed`
+- `percentage = (consumed / goal) * 100` (cap at 100)
+
+**States:**
+| State | Behavior |
+|-------|----------|
+| Loading | Show skeleton: gray bar (animated pulse) where number would be |
+| Empty | Show "0" for consumed, full goal, "X left" shows full goal |
+| Has Data | Show consumed / goal, remaining, progress bar |
+| Over Goal | Show consumed (no cap), remaining shows "0 left" or "X over" (decide with PM), bar fills 100% |
+| Error | Show "Unable to load" with retry button |
+
+**Notes:**
+- Format numbers with commas: `1,450` not `1450`
+- Progress bar: solid fill, no gradient
+- "X left" uses accent color
+
+---
+
+## 4. MacroCard
+
+**Component Name:** `MacroCard`
+
+**Props:**
+| Prop | Type | Required | Description |
+|------|------|----------|-------------|
+| protein | { current: number, goal: number } | Yes | Protein data |
+| carbs | { current: number, goal: number } | Yes | Carbs data |
+| fat | { current: number, goal: number } | Yes | Fat data |
+
+**States:**
+| State | Behavior |
+|-------|----------|
+| Loading | Show 3 skeleton rows with pulsing bars |
+| Empty | Show 0 / goal for each macro |
+| Has Data | Show current / goal with gradient progress bars |
+| Partial Data | Show available macros, 0 for missing |
+| Error | Show "Unable to load" with retry button |
+
+**Notes:**
+- All three bars use same gradient (L→R: `gradientStart` → `gradientEnd`)
+- Each macro is a `MacroRow` subcomponent
+
+---
+
+## 5. MacroRow (subcomponent)
+
+**Component Name:** `MacroRow`
+
+**Props:**
+| Prop | Type | Required | Description |
+|------|------|----------|-------------|
+| name | string | Yes | "Protein", "Carbs", or "Fat" |
+| current | number | Yes | Grams consumed |
+| goal | number | Yes | Goal in grams |
+
+**States:**
+| State | Behavior |
+|-------|----------|
+| Default | Label left, "X / Yg" right, gradient bar below |
+
+---
+
+## 6. StepsCard
+
+**Component Name:** `StepsCard`
+
+**Props:**
+| Prop | Type | Required | Description |
+|------|------|----------|-------------|
+| steps | number | Yes | Steps taken today |
+| goal | number | Yes | Daily step goal |
+
+**States:**
+| State | Behavior |
+|-------|----------|
+| Loading | Show empty ring with pulsing center |
+| Empty | Show "0" in center, empty ring |
+| Has Data | Show "X.Xk" in center, ring fills proportionally |
+| Goal Met | Ring at 100%, optionally show celebration state |
+| Error | Show "—" in center, empty ring |
+
+**Notes:**
+- Display as "X.Xk" (e.g., "6.2k" not "6,234")
+- Ring has square ends (`strokeLinecap: butt`)
+- Gradient applied to ring stroke
+
+---
+
+## 7. SleepCard
+
+**Component Name:** `SleepCard`
+
+**Props:**
+| Prop | Type | Required | Description |
+|------|------|----------|-------------|
+| hours | number | Yes | Hours slept last night |
+| goal | number | Yes | Sleep goal in hours |
+
+**States:**
+| State | Behavior |
+|-------|----------|
+| Loading | Show skeleton number |
+| Empty/Not Logged | Show "—" with "not logged" subtext |
+| Has Data | Show "X.X / Yh" with "last night" subtext |
+| Error | Show "—" |
+
+**Notes:**
+- No progress bar — number display only
+- This is informational (not updated throughout day)
+- Smaller visual weight than Steps
+
+---
+
+## 8. TabBar
+
+**Component Name:** `TabBar`
+
+**Props:**
+| Prop | Type | Required | Description |
+|------|------|----------|-------------|
+| activeTab | `'dashboard' \| 'log' \| 'overview'` | Yes | Currently active tab |
+| onTabChange | (tab: string) => void | Yes | Tab change handler |
+
+**Tab Config:**
+| Tab ID | Label | Icon (Lucide) |
+|--------|-------|---------------|
+| dashboard | Dashboard | LayoutGrid |
+| log | Log | PlusCircle |
+| overview | Overview | BarChart3 |
+
+**States:**
+| State | Behavior |
+|-------|----------|
+| Default | Show all 3 tabs, active tab highlighted |
+
+**Notes:**
+- Fixed to bottom of screen
+- Active: heavier icon stroke (2), semibold label, primary color
+- Inactive: lighter stroke (1.5), regular weight, tertiary color
+- Account for iOS safe area (`padding-bottom: env(safe-area-inset-bottom)`)
+
+---
+
+## 9. ProgressBar
+
+**Component Name:** `ProgressBar`
+
+**Props:**
+| Prop | Type | Required | Default | Description |
+|------|------|----------|---------|-------------|
+| value | number | Yes | — | Current value |
+| max | number | Yes | — | Maximum/goal value |
+| height | number | No | 12 | Height in pixels |
+| variant | `'solid' \| 'gradient'` | No | 'gradient' | Fill style |
+
+**States:**
+| State | Behavior |
+|-------|----------|
+| Empty | Show track only |
+| Partial | Show filled portion proportional to value/max |
+| Full | Fill entire track (cap at 100%) |
+| Loading | Pulsing animation on track |
+
+**Notes:**
+- No border radius (square ends)
+- Solid variant: single `solidFill` color
+- Gradient variant: L→R gradient
+
+---
+
+## 10. ProgressRing
+
+**Component Name:** `ProgressRing`
+
+**Props:**
+| Prop | Type | Required | Default | Description |
+|------|------|----------|---------|-------------|
+| value | number | Yes | — | Current value |
+| max | number | Yes | — | Maximum/goal value |
+| size | number | No | 130 | Diameter in pixels |
+| strokeWidth | number | No | 12 | Ring thickness |
+| children | ReactNode | No | — | Center content |
+
+**States:**
+| State | Behavior |
+|-------|----------|
+| Empty | Show track ring only |
+| Partial | Fill arc proportional to value/max |
+| Full | Complete ring (cap at 100%) |
+| Loading | Pulsing animation |
+
+**Notes:**
+- Square ends (`strokeLinecap: butt`) — NOT rounded
+- Rotation: starts at top (12 o'clock), fills clockwise
+- Gradient applied to stroke
+
+---
+
+# 🥈 Design Tokens / Style Guide
+
+```css
+:root {
+  /* ========== COLORS ========== */
+  
+  /* Backgrounds */
+  --color-bg-primary: #FDF9F8;      /* App background */
+  --color-bg-surface: #FFFFFF;      /* Cards, sections */
+  --color-bg-accent: #FAF2EF;       /* Subtle highlights */
+  
+  /* Borders */
+  --color-border-default: #F0E8E4;  /* Section dividers */
+  
+  /* Text */
+  --color-text-primary: #3D352F;    /* Headlines, primary numbers */
+  --color-text-secondary: #7A6E66;  /* Labels, row names */
+  --color-text-tertiary: #A89E96;   /* Hints, goals, subtext */
+  
+  /* Progress */
+  --color-progress-track: #F5EDEA;  /* Unfilled bar/ring */
+  --color-progress-fill: #CBA090;   /* Solid bar fill */
+  --color-gradient-start: #C9988A;  /* Gradient dark end */
+  --color-gradient-end: #DBBEB4;    /* Gradient light end */
+  
+  /* Accent */
+  --color-accent: #D9A090;          /* "X left", highlights */
+  --color-accent-soft: #FAE8E2;     /* Badge backgrounds */
+  
+  /* Cycle Badge */
+  --color-cycle-bg: #FAE8E2;
+  --color-cycle-text: #C08A78;
+  
+  
+  /* ========== TYPOGRAPHY ========== */
+  
+  /* Font Family */
+  --font-family: "DM Sans", -apple-system, BlinkMacSystemFont, sans-serif;
+  
+  /* Font Sizes */
+  --font-size-display: 52px;        /* Sleep number */
+  --font-size-headline: 44px;       /* Calorie number */
+  --font-size-title: 28px;          /* Steps ring number */
+  --font-size-large: 20px;          /* Sleep goal */
+  --font-size-date: 18px;           /* Header date */
+  --font-size-body: 16px;           /* Goal text, "X left" */
+  --font-size-label: 15px;          /* Macro row labels */
+  --font-size-small: 13px;          /* Badge text */
+  --font-size-caption: 12px;        /* Section headers, subtext */
+  --font-size-tiny: 11px;           /* Ring subtext */
+  
+  /* Font Weights */
+  --font-weight-regular: 400;
+  --font-weight-medium: 500;
+  --font-weight-semibold: 600;
+  --font-weight-bold: 700;
+  
+  /* Line Heights */
+  --line-height-tight: 1;
+  --line-height-normal: 1.4;
+  
+  
+  /* ========== SPACING ========== */
+  
+  /* Base Unit */
+  --space-unit: 8px;
+  
+  /* Section Padding */
+  --section-padding-x: 24px;
+  --section-padding-y: 20px;
+  
+  /* Component Spacing */
+  --macro-row-gap: 18px;            /* Between macro rows */
+  --label-gap: 8px;                 /* Label to bar */
+  --ring-label-gap: 10px;           /* Ring to subtext */
+  
+  /* Progress Dimensions */
+  --bar-height-large: 14px;         /* Calorie bar */
+  --bar-height-default: 12px;       /* Macro bars */
+  --ring-size: 130px;               /* Steps ring diameter */
+  --ring-stroke: 12px;              /* Ring thickness */
+  
+  
+  /* ========== BORDERS ========== */
+  
+  --border-radius: 0px;             /* Sharp corners (all elements) */
+  --border-radius-badge: 24px;      /* Cycle badge only */
+  --border-width: 1px;
+  
+  
+  /* ========== TAB BAR ========== */
+  
+  --tab-bar-height: 70px;
+  --tab-icon-size: 26px;
+  --tab-label-size: 12px;
+  
+  
+  /* ========== TRANSITIONS ========== */
+  
+  --transition-fast: 0.2s ease;
+  --transition-default: 0.3s ease;
+  --transition-slow: 0.5s ease;
+}
+```
+
+---
+
+# 🥉 Screen Layout Specification
+
+## Dashboard Screen
+
+```
+┌─────────────────────────────────────────────┐
+│ 24px padding                                │
+│                                             │
+│  Wednesday, Dec 25          [Follicular·D8] │ ← Header section
+│                                             │
+├─────────────────────────────────────────────┤ ← 1px border
+│                                             │
+│  CALORIES                                   │
+│                                             │
+│  1,450              / 2,000 kcal    550 left│
+│                                             │
+│  ████████████████████████░░░░░░░░░░░░░░░░░░ │ ← 14px solid bar
+│                                             │
+├─────────────────────────────────────────────┤
+│                                             │
+│  MACROS                                     │
+│                                             │
+│  Protein                         85 / 120g  │
+│  ████████████████████░░░░░░░░░░░░░░░░░░░░░░ │ ← 12px gradient bar
+│                                             │ ← 18px gap
+│  Carbs                          180 / 250g  │
+│  ██████████████████████████░░░░░░░░░░░░░░░░ │
+│                                             │
+│  Fat                             45 / 65g   │
+│  ██████████████████████████░░░░░░░░░░░░░░░░ │
+│                                             │
+├─────────────────────────────────────────────┤
+│                                             │
+│      ┌─────────┐              SLEEP         │
+│      │         │                            │
+│      │  6.2k   │              7.5 / 8h      │ ← 52px / 20px
+│      │  steps  │                            │
+│      │         │             last night     │
+│      └─────────┘                            │
+│     of 10k goal                             │
+│                                             │
+├─────────────────────────────────────────────┤
+│                                             │
+│    [⊞]           [＋]           [📊]        │ ← 70px tab bar
+│  Dashboard        Log         Overview      │
+│                                             │
+└─────────────────────────────────────────────┘
+```
+
+## Responsive Behavior
+
+| Breakpoint | Width | Behavior |
+|------------|-------|----------|
+| Mobile (default) | < 768px | Full width, 24px side padding |
+| Tablet | 768px - 1024px | Max-width 500px, centered |
+| Desktop | > 1024px | Max-width 430px (iPhone width), centered |
+
+**Target Device:** iPhone 17 Pro (430 x 932 logical points)
+
+---
+
+## Empty State
+
+When no data logged for today:
+
+```
+┌─────────────────────────────────────────────┐
+│                                             │
+│  Wednesday, Dec 25          [Follicular·D8] │
+│                                             │
+├─────────────────────────────────────────────┤
+│                                             │
+│                                             │
+│         No data logged today                │
+│                                             │
+│            [ Log Entry → ]                  │
+│                                             │
+│                                             │
+├─────────────────────────────────────────────┤
+│    [⊞]           [＋]           [📊]        │
+│  Dashboard        Log         Overview      │
+└─────────────────────────────────────────────┘
+```
+
+---
+
+## Loading State
+
+Show skeleton UI:
+
+- Gray pulsing bars where numbers would be
+- Empty rings with subtle animation
+- Maintain layout structure
+
+---
+
+# File Structure (Suggested)
+
+```
+src/
+├── components/
+│   ├── ui/
+│   │   ├── ProgressBar.tsx
+│   │   ├── ProgressRing.tsx
+│   │   └── Section.tsx
+│   ├── dashboard/
+│   │   ├── Header.tsx
+│   │   ├── CycleBadge.tsx
+│   │   ├── CalorieCard.tsx
+│   │   ├── MacroCard.tsx
+│   │   ├── MacroRow.tsx
+│   │   ├── StepsCard.tsx
+│   │   └── SleepCard.tsx
+│   └── navigation/
+│       └── TabBar.tsx
+├── screens/
+│   └── DashboardScreen.tsx
+├── styles/
+│   └── tokens.css
+└── types/
+    └── fitness.ts
+```
+
+---
+
+# Quick Reference: Icon Library
+
+Using **Lucide React** for all icons.
+
+```bash
+npm install lucide-react
+```
+
+| Icon | Import | Usage |
+|------|--------|-------|
+| Droplet | `import { Droplet } from 'lucide-react'` | Cycle badge |
+| LayoutGrid | `import { LayoutGrid } from 'lucide-react'` | Dashboard tab |
+| PlusCircle | `import { PlusCircle } from 'lucide-react'` | Log tab |
+| BarChart3 | `import { BarChart3 } from 'lucide-react'` | Overview tab |
+
+---
+
+# Quick Reference: Font
+
+**DM Sans** from Google Fonts
+
+```html
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+```
+
+Or in CSS:
+```css
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap');
+```
+
+---
+
+# Checklist for Dev
+
+- [ ] Set up design tokens in CSS variables
+- [ ] Install DM Sans font
+- [ ] Install Lucide React icons
+- [ ] Build `ProgressBar` component (solid + gradient variants)
+- [ ] Build `ProgressRing` component (square ends!)
+- [ ] Build `Section` wrapper component
+- [ ] Build `CycleBadge` component
+- [ ] Build `CalorieCard` with loading/empty/data states
+- [ ] Build `MacroCard` + `MacroRow` components
+- [ ] Build `StepsCard` with ring
+- [ ] Build `SleepCard` (number only, no bar)
+- [ ] Build `TabBar` with active states
+- [ ] Build `Header` with date formatting
+- [ ] Compose `DashboardScreen` from components
+- [ ] Add empty state
+- [ ] Add loading skeletons
+- [ ] Test on iOS Safari + Chrome
+- [ ] Verify Capacitor build works
+
+---
+
+*Generated: December 2025*
+*Questions? Ping the PM.*

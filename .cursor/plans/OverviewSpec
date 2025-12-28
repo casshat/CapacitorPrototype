@@ -1,0 +1,737 @@
+# FitTrack Dev Handoff
+## Overview Tab - Final Specification
+
+---
+
+# 🥇 Component Breakdown with States
+
+## 1. CollapsibleSection
+
+**Component Name:** `CollapsibleSection`
+
+**Props:**
+| Prop | Type | Required | Description |
+|------|------|----------|-------------|
+| title | string | Yes | Section header text (e.g., "Goals", "Profile") |
+| isExpanded | boolean | Yes | Current expanded state |
+| onToggle | () => void | Yes | Toggle handler |
+| children | ReactNode | Yes | Section content |
+
+**States:**
+| State | Behavior |
+|-------|----------|
+| Collapsed | Show title + chevron down icon only |
+| Expanded | Show title + chevron up icon + children content |
+
+**Notes:**
+- Entire header is clickable
+- Chevron animates on state change
+- All sections start collapsed by default
+- Uses ChevronUp/ChevronDown from Lucide (20px)
+
+---
+
+## 2. GoalEditor
+
+**Component Name:** `GoalEditor`
+
+**Props:**
+| Prop | Type | Required | Description |
+|------|------|----------|-------------|
+| label | string | Yes | "Calories", "Protein", "Carbs", "Fat", "Steps", "Sleep" |
+| value | number | Yes | Current goal value |
+| unit | string | Yes | "kcal", "g", "steps", "hours" |
+| onSave | (value: number) => void | Yes | Save handler |
+
+**States:**
+| State | Behavior |
+|-------|----------|
+| Default | Input shows current value, Save button disabled (grayed out) |
+| Editing | User changes input, Save button enabled (accent color) |
+| Saving | Show "Saving..." in button (if async), disable input |
+| Saved | Flash green checkmark + "Saved" text for 2 seconds, then return to default |
+
+**Layout:**
+```
+┌─────────────────────────────────────────┐
+│ Calories                         ✓ Saved│ ← Green checkmark (temporary)
+│                                         │
+│ [ 2000 ]  kcal                 [Save]  │ ← Input + unit + button
+└─────────────────────────────────────────┘
+```
+
+**Notes:**
+- Input: 16px font, 600 weight, bgInput background, borderInput border, 8px radius
+- Save button: 14px text, 700 weight, 14px vertical padding, 24px horizontal padding
+- Save button disabled: bgInput background, textTertiary color, 0.5 opacity
+- Save button enabled: accent background, white text
+- 28px margin between goal rows
+- Checkmark: Lucide Check, 18px, strokeWidth 3, success color
+
+---
+
+## 3. ProfileField
+
+**Component Name:** `ProfileField`
+
+**Props:**
+| Prop | Type | Required | Default | Description |
+|------|------|----------|---------|-------------|
+| label | string | Yes | — | "Age", "Height", "Weight" |
+| value | number \| {feet: number, inches: number} | Yes | — | Field value |
+| onChange | (val) => void | Yes | — | Change handler |
+| unit | string | Conditional | — | "years", "lbs" (not used for height) |
+| type | 'single' \| 'height' | No | 'single' | Input type |
+
+**States:**
+| State | Behavior |
+|-------|----------|
+| Default (single) | One input field with unit label |
+| Default (height) | Two input fields: feet + inches |
+
+**Layout (single input):**
+```
+┌─────────────────────────────────────────┐
+│ Age                                     │
+│                                         │
+│ [ 28 ]  years                          │
+└─────────────────────────────────────────┘
+```
+
+**Layout (height):**
+```
+┌─────────────────────────────────────────┐
+│ Height                                  │
+│                                         │
+│ [ 5 ]  ft    [ 5 ]  in                 │
+└─────────────────────────────────────────┘
+```
+
+**Notes:**
+- Single input: 100px width, center-aligned text
+- Height inputs: 80px width each, center-aligned text
+- Same styling as GoalEditor inputs (bgInput, borderInput, 8px radius)
+- 24px margin between profile fields
+
+---
+
+## 4. CycleField
+
+**Component Name:** `CycleField`
+
+**Props:**
+| Prop | Type | Required | Default | Description |
+|------|------|----------|---------|-------------|
+| label | string | Yes | — | "Cycle Length", "Average Period Days", "Last Period Start Date" |
+| value | number \| string | Yes | — | Field value |
+| onChange | (val) => void | Yes | — | Change handler |
+| unit | string | Conditional | — | "days" (not used for date) |
+| type | 'number' \| 'date' | No | 'number' | Input type |
+
+**States:**
+| State | Behavior |
+|-------|----------|
+| Number input | 100px width, centered, shows unit label |
+| Date input | Full width, left-aligned, no unit label |
+
+**Layout (number):**
+```
+┌─────────────────────────────────────────┐
+│ Cycle Length                            │
+│                                         │
+│ [ 28 ]  days                           │
+└─────────────────────────────────────────┘
+```
+
+**Layout (date):**
+```
+┌─────────────────────────────────────────┐
+│ Last Period Start Date                  │
+│                                         │
+│ [ 2024-12-18                        ]  │
+└─────────────────────────────────────────┘
+```
+
+**Notes:**
+- Number inputs: 100px width, center-aligned
+- Date input: flex: 1 (full width), left-aligned
+- Same styling as other inputs (bgInput, borderInput, 8px radius)
+- 24px margin between cycle fields
+
+---
+
+## 5. WeightChart
+
+**Component Name:** `WeightChart`
+
+**Props:**
+| Prop | Type | Required | Description |
+|------|------|----------|-------------|
+| data | Array<{date: string, weight: number}> | Yes | Weight data points |
+| days | '7d' \| '14d' \| '30d' | Yes | Time range filter |
+
+**Computed:**
+- Y-axis range: `min(data) - 2` to `max(data) + 2`
+- 3 Y-axis labels: max, middle, min (rounded)
+- 3 X-axis labels: first date, middle date, last date
+
+**States:**
+| State | Behavior |
+|-------|----------|
+| Loading | Show pulsing skeleton line |
+| Empty (<2 points) | Show message: "Log weight for 2+ days to see trend" |
+| Has Data (2-4 points) | Show line chart with Y-axis labels |
+| Has Data (5+ points) | Show line chart with Y-axis labels |
+| Error | Show "Unable to load chart" message |
+
+**Layout:**
+```
+┌─────────────────────────────────────────┐
+│ 141 ┼                        ●──        │ ← Y-axis labels (left)
+│     │                  ●──●─             │
+│ 138 ┼           ●───●─                  │ ← Line only (no dots)
+│     │      ●──●                          │
+│ 135 ┼─────                               │
+│     └──────────────────────────────     │
+│     12/18        12/22          12/25   │ ← X-axis labels
+└─────────────────────────────────────────┘
+```
+
+**Chart Specifications:**
+- **Chart height:** 200px (plus 40px for labels)
+- **Left padding:** 40px (for Y-axis labels)
+- **Line:** 3px stroke width, gradient (gradientStart → gradientEnd)
+- **Line style:** Rounded joins (`strokeLinejoin: round`), rounded caps (`strokeLinecap: round`)
+- **NO dots/circles on data points** — line only
+- **Y-axis labels:** 12px font, textTertiary color, positioned at left edge
+- **X-axis labels:** 12px font, textTertiary color, caption style
+- **Gradient ID:** "lineGrad" (use same gradient as other charts)
+
+**Notes:**
+- Chart auto-scales Y-axis based on data
+- Always show 3 Y-axis labels (max, mid, min) — rounded to whole numbers
+- Always show 3 X-axis labels (first, middle, last date)
+- Dates formatted as "MM/DD" (e.g., "12/25")
+
+---
+
+## 6. ChartRangeSelector
+
+**Component Name:** `ChartRangeSelector` (or use native `<select>`)
+
+**Props:**
+| Prop | Type | Required | Description |
+|------|------|----------|-------------|
+| value | '7d' \| '14d' \| '30d' | Yes | Selected range |
+| onChange | (value: string) => void | Yes | Change handler |
+
+**States:**
+| State | Behavior |
+|-------|----------|
+| Default | Show selected value in dropdown |
+| Open | Show all 3 options |
+
+**Options:**
+- 7d (7 days)
+- 14d (14 days)
+- 30d (30 days)
+
+**Styles:**
+- labelMedium typography (14px, 600 weight)
+- bgInput background, borderInput border
+- 8px border radius
+- 6px vertical padding, 12px left padding, 32px right padding (for chevron)
+- ChevronDown icon positioned absolute at right (10px from edge)
+
+---
+
+## 7. QuickStatCard
+
+**Component Name:** `QuickStatCard`
+
+**Props:**
+| Prop | Type | Required | Description |
+|------|------|----------|-------------|
+| label | string | Yes | "Avg Calories", "Avg Protein", "Avg Steps", "Avg Sleep" |
+| average | number \| string | Yes | 7-day average value |
+| goal | number \| string | Yes | Goal value |
+| unit | string | Yes | "kcal", "g", "h", or empty string |
+
+**States:**
+| State | Behavior |
+|-------|----------|
+| Loading | Pulsing skeleton (gray bar) |
+| Empty (<7 days logged) | Show "—" with "Need 7 days of data" subtext |
+| Has Data | Show average, goal, progress bar |
+
+**Layout:**
+```
+┌────────────────────────────┐
+│ Avg Calories               │
+│                            │
+│ 1,850      / 2,000 kcal   │
+│ ████████████████░░░░░░░░░ │
+└────────────────────────────┘
+```
+
+**Notes:**
+- Background: bgAccent (#FAF2EF)
+- Padding: 20px
+- Border radius: 8px
+- Label: labelMedium, textSecondary
+- Average: 24px font, 700 weight, textPrimary
+- Goal: caption, textTertiary
+- Progress bar: GradientProgressBar, 10px height
+- Cards displayed in 2-column grid with 12px gap
+
+---
+
+# 🥈 Design Tokens / Style Guide
+
+**See Dashboard handoff doc for complete design tokens.**
+
+Key tokens for Overview tab:
+
+```css
+/* Colors */
+--color-bg-primary: #FDF9F8;
+--color-bg-surface: #FFFFFF;
+--color-bg-accent: #FAF2EF;
+--color-bg-input: #FAF8F7;
+--color-border-default: #F0E8E4;
+--color-border-input: #E5DDD8;
+--color-text-primary: #2D2420;
+--color-text-secondary: #6B5D54;
+--color-text-tertiary: #9A8E86;
+--color-accent: #C9907E;
+--color-success: #6B8F64;
+--color-gradient-start: #C9988A;
+--color-gradient-end: #DBBEB4;
+
+/* Spacing */
+--section-padding: 24px;
+--field-margin-bottom: 24px;
+--goal-margin-bottom: 28px;
+--grid-gap: 12px;
+
+/* Border Radius */
+--border-radius-default: 8px;
+--border-radius-input: 8px;
+```
+
+---
+
+# 🥉 Screen Layout Specification
+
+## Overview Tab Structure
+
+```
+┌─────────────────────────────────────────────┐
+│ 24px padding                                │
+│                                             │
+│  GOALS                              [v]    │ ← Collapsed header
+│                                             │
+├─────────────────────────────────────────────┤
+│                                             │
+│  PROFILE                            [v]    │ ← Collapsed header
+│                                             │
+├─────────────────────────────────────────────┤
+│                                             │
+│  CYCLE SETTINGS                     [v]    │ ← Collapsed header
+│                                             │
+├─────────────────────────────────────────────┤
+│                                             │
+│  WEIGHT TREND                      [7d ▼]  │ ← Section header
+│                                             │
+│  141 ┼                        ●──          │
+│      │                  ●──●─               │
+│  138 ┼           ●───●─                    │ ← Line chart
+│      │      ●──●                            │
+│  135 ┼─────                                 │
+│      └──────────────────────────────       │
+│      12/18        12/22          12/25     │
+│                                             │
+├─────────────────────────────────────────────┤
+│                                             │
+│  7-DAY AVERAGES                             │ ← Section header
+│                                             │
+│  ┌──────────────┐  ┌──────────────┐        │
+│  │ Avg Calories │  │ Avg Protein  │        │
+│  │ 1,850/2,000  │  │ 110/120g     │        │ ← 2-col grid
+│  │ ███████████  │  │ ████████████ │        │
+│  └──────────────┘  └──────────────┘        │
+│                                             │
+│  ┌──────────────┐  ┌──────────────┐        │
+│  │ Avg Steps    │  │ Avg Sleep    │        │
+│  │ 8.2k/10k     │  │ 7.3/8h       │        │
+│  │ ██████████░  │  │ ███████████  │        │
+│  └──────────────┘  └──────────────┘        │
+│                                             │
+├─────────────────────────────────────────────┤
+│    [⊞]           [＋]           [📊]        │ ← Tab bar
+│  Dashboard        Log         Overview      │
+└─────────────────────────────────────────────┘
+```
+
+## Expanded Goals Section
+
+```
+┌─────────────────────────────────────────────┐
+│  GOALS                              [^]    │ ← Expanded header
+│                                             │
+│  Calories                                   │
+│  [ 2000 ]  kcal                    [Save]  │
+│                                             │ ← 28px gap
+│  Protein                                    │
+│  [ 120 ]  g                        [Save]  │
+│                                             │
+│  Carbs                                      │
+│  [ 250 ]  g                        [Save]  │
+│                                             │
+│  Fat                                        │
+│  [ 65 ]  g                         [Save]  │
+│                                             │
+│  Steps                                      │
+│  [ 10000 ]  steps                  [Save]  │
+│                                             │
+│  Sleep                                      │
+│  [ 8 ]  hours                      [Save]  │
+│                                             │
+├─────────────────────────────────────────────┤
+```
+
+## Expanded Profile Section
+
+```
+┌─────────────────────────────────────────────┐
+│  PROFILE                            [^]    │ ← Expanded header
+│                                             │
+│  Age                                        │
+│  [ 28 ]  years                             │
+│                                             │ ← 24px gap
+│  Height                                     │
+│  [ 5 ]  ft    [ 5 ]  in                    │
+│                                             │
+│  Weight                                     │
+│  [ 138 ]  lbs                              │
+│                                             │
+├─────────────────────────────────────────────┤
+```
+
+## Expanded Cycle Settings Section
+
+```
+┌─────────────────────────────────────────────┐
+│  CYCLE SETTINGS                     [^]    │ ← Expanded header
+│                                             │
+│  Cycle Length                               │
+│  [ 28 ]  days                              │
+│                                             │ ← 24px gap
+│  Average Period Days                        │
+│  [ 5 ]  days                               │
+│                                             │
+│  Last Period Start Date                     │
+│  [ 2024-12-18                            ] │
+│                                             │
+├─────────────────────────────────────────────┤
+```
+
+---
+
+# 🎯 Mock Data for Prototype
+
+```javascript
+const mockOverviewData = {
+  goals: {
+    calories: 2000,
+    protein: 120,
+    carbs: 250,
+    fat: 65,
+    steps: 10000,
+    sleep: 8,
+  },
+  profile: {
+    age: 28,
+    heightFeet: 5,
+    heightInches: 5,
+    weight: 138,
+  },
+  cycleSettings: {
+    cycleLength: 28,
+    averagePeriodDays: 5,
+    lastPeriodStartDate: '2024-12-18',
+  },
+  weightHistory: [
+    { date: '12/18', weight: 138.2 },
+    { date: '12/20', weight: 139.1 },
+    { date: '12/22', weight: 138.8 },
+    { date: '12/24', weight: 138.5 },
+    { date: '12/25', weight: 138.3 },
+  ],
+  sevenDayAverages: {
+    calories: 1850,
+    protein: 110,
+    steps: 8234,
+    sleep: 7.3,
+  }
+};
+```
+
+---
+
+# 🔄 Interaction Details
+
+## Collapsible Section Behavior
+
+1. User taps section header
+2. Section expands/collapses with smooth animation (300ms ease)
+3. Chevron icon rotates (ChevronDown ↔ ChevronUp)
+4. Other sections remain in their current state (independent toggling)
+5. All sections start collapsed on tab load
+
+## Goal Editing Flow
+
+1. User sees current goal value in input (disabled save button)
+2. User taps input field, keyboard appears (number input)
+3. User changes value
+4. Save button becomes enabled (accent color)
+5. User taps Save
+6. Button shows "Saving..." (optional if async)
+7. On success: Green checkmark + "Saved" text appears next to label for 2 seconds
+8. Input value updates, button returns to disabled state
+
+## Profile & Cycle Field Editing
+
+1. User changes value in input
+2. No explicit save button — values save on blur/change (or add save button if needed)
+3. Consider auto-save after 500ms debounce
+
+## Chart Range Selection
+
+1. User taps dropdown (shows "7d")
+2. Dropdown opens with 3 options: 7d, 14d, 30d
+3. User selects option
+4. Chart re-renders with new data range
+5. Dropdown closes and shows new selection
+
+---
+
+# 🔧 Empty States
+
+## No Weight Data (<2 entries)
+
+```
+┌─────────────────────────────────────┐
+│ Weight Trend                   [7d ▼]│
+│                                     │
+│  Log weight for 2+ days to see     │
+│  your trend chart                   │
+│                                     │
+└─────────────────────────────────────┘
+```
+
+**Styling:**
+- Center-aligned text
+- bodyMedium typography (16px)
+- textSecondary color
+- 40px vertical padding
+
+## Insufficient Data for Averages (<7 days)
+
+```
+┌─────────────────────────────────────┐
+│ 7-Day Averages                      │
+│                                     │
+│  Log data for 7+ days to see        │
+│  weekly averages                    │
+│                                     │
+└─────────────────────────────────────┘
+```
+
+**Styling:**
+- Same as weight chart empty state
+
+---
+
+# 📐 Responsive Behavior
+
+| Breakpoint | Width | Adjustments |
+|------------|-------|-------------|
+| Mobile | < 768px | 24px padding, single column, 2-col grid for stats |
+| Tablet | 768px - 1024px | Max-width 600px centered |
+| Desktop | > 1024px | Max-width 430px (iPhone width) centered |
+
+---
+
+# ✅ Dev Checklist
+
+**Components:**
+- [ ] Build CollapsibleSection component with smooth animation
+- [ ] Build GoalEditor with save state and checkmark feedback
+- [ ] Build ProfileField with single input variant
+- [ ] Build ProfileField with height (feet + inches) variant
+- [ ] Build CycleField with number and date variants
+- [ ] Build WeightChart with Y-axis labels (NO dots, line only)
+- [ ] Build ChartRangeSelector dropdown
+- [ ] Build QuickStatCard component
+
+**Data & State:**
+- [ ] Set up state management for all 3 collapsible sections
+- [ ] Set up state for goals (6 values)
+- [ ] Set up state for profile (age, heightFeet, heightInches, weight)
+- [ ] Set up state for cycle settings (3 values)
+- [ ] Set up state for chart range (7d/14d/30d)
+- [ ] Wire up goal save handlers with API
+- [ ] Wire up profile save handlers with API
+- [ ] Wire up cycle save handlers with API
+
+**Charts & Visualization:**
+- [ ] Implement WeightChart with proper Y-axis scaling
+- [ ] Add Y-axis labels (3 labels: max, mid, min)
+- [ ] Implement line rendering (gradient stroke, no dots)
+- [ ] Add X-axis date labels (3 labels: start, mid, end)
+- [ ] Wire up chart data filtering (7d/14d/30d)
+- [ ] Calculate 7-day averages from historical data
+
+**UX & Polish:**
+- [ ] Add empty states for chart and averages
+- [ ] Add save success feedback (green checkmark, 2s duration)
+- [ ] Add smooth expand/collapse animations (300ms ease)
+- [ ] Ensure all number inputs show keyboard on mobile
+- [ ] Test date picker on iOS Safari
+- [ ] Verify all collapsible sections start collapsed
+- [ ] Test on iPhone 15 Pro (430px width)
+
+**Integration:**
+- [ ] Test with real API endpoints
+- [ ] Handle loading states
+- [ ] Handle error states
+- [ ] Verify data persistence
+
+---
+
+# ❓ Questions for Engineering
+
+1. **Data Persistence:**
+   - Should goals auto-save on change, or require explicit Save button?
+   - Should profile/cycle fields auto-save, or require Save button?
+   - Do we need "Cancel" functionality for goal editing?
+
+2. **API Endpoints:**
+   - What's the endpoint structure for saving goals? (e.g., PATCH /api/user/goals)
+   - What's the endpoint for saving profile? (e.g., PATCH /api/user/profile)
+   - What's the endpoint for saving cycle settings? (e.g., PATCH /api/user/cycle)
+   - What's the endpoint for fetching weight history? (e.g., GET /api/weight?days=7)
+   - What's the endpoint for fetching 7-day averages? (e.g., GET /api/stats/averages?days=7)
+
+3. **Calculations:**
+   - Should BMR/TDEE be calculated client-side or server-side?
+   - Which BMR formula to use? (Mifflin-St Jeor recommended)
+   - Where should calculated BMR/TDEE be displayed? (Dashboard in future iteration?)
+
+4. **Chart Library:**
+   - Which charting library should we use? Recommendations:
+     - **Recharts** (React-friendly, declarative)
+     - **D3.js** (more control, steeper learning curve)
+     - **Custom SVG** (lightweight, full control)
+
+5. **Validation:**
+   - Min/max values for each field? (e.g., age 13-120, height 2-8 ft, weight 50-500 lbs)
+   - Should cycle length be capped? (e.g., 21-45 days)
+   - Should period days be capped? (e.g., 1-10 days)
+
+6. **Section Persistence:**
+   - Should we remember which sections were expanded in localStorage?
+   - Or always start collapsed on page load?
+
+---
+
+# 📝 File Structure (Suggested)
+
+```
+src/
+├── components/
+│   ├── ui/
+│   │   ├── GradientProgressBar.tsx (reuse from Dashboard)
+│   │   ├── Section.tsx (reuse from Dashboard)
+│   │   └── CollapsibleSection.tsx (NEW)
+│   ├── overview/
+│   │   ├── GoalEditor.tsx
+│   │   ├── ProfileField.tsx
+│   │   ├── CycleField.tsx
+│   │   ├── WeightChart.tsx
+│   │   ├── ChartRangeSelector.tsx
+│   │   └── QuickStatCard.tsx
+│   └── navigation/
+│       └── TabBar.tsx (reuse from Dashboard)
+├── screens/
+│   └── OverviewScreen.tsx
+├── hooks/
+│   └── useOverviewData.ts (data fetching & state management)
+├── utils/
+│   └── bmrCalculations.ts (BMR/TDEE formulas)
+└── types/
+    └── overview.ts
+```
+
+---
+
+# 🎨 Icon Reference
+
+Using **Lucide React** for all icons.
+
+| Icon | Import | Usage |
+|------|--------|-------|
+| ChevronDown | `import { ChevronDown } from 'lucide-react'` | Collapsed section indicator |
+| ChevronUp | `import { ChevronUp } from 'lucide-react'` | Expanded section indicator |
+| Check | `import { Check } from 'lucide-react'` | Save success feedback |
+
+---
+
+# 💾 Data Schema (Recommended)
+
+```typescript
+// User Goals
+interface UserGoals {
+  calories: number;      // kcal
+  protein: number;       // grams
+  carbs: number;         // grams
+  fat: number;           // grams
+  steps: number;         // count
+  sleep: number;         // hours
+}
+
+// User Profile
+interface UserProfile {
+  age: number;           // years
+  heightFeet: number;    // feet
+  heightInches: number;  // inches
+  weight: number;        // lbs
+}
+
+// Cycle Settings
+interface CycleSettings {
+  cycleLength: number;           // days (typical: 21-45)
+  averagePeriodDays: number;     // days (typical: 3-7)
+  lastPeriodStartDate: string;   // ISO date format (YYYY-MM-DD)
+}
+
+// Weight History
+interface WeightEntry {
+  date: string;          // "MM/DD" format for display
+  weight: number;        // lbs
+}
+
+// 7-Day Averages
+interface SevenDayAverages {
+  calories: number;
+  protein: number;
+  steps: number;
+  sleep: number;
+}
+```
+
+---
+
+*Generated: December 2025*
+*Questions? Ping the PM.*

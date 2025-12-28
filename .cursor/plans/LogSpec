@@ -1,0 +1,649 @@
+# FitTrack Dev Handoff — Log Tab
+## Final Specification + Updated Design System
+
+---
+
+# ⚠️ IMPORTANT: Typography System Update
+
+**The typography weights have been updated globally.** These changes apply to BOTH the Dashboard and Log tabs. Please update your existing Dashboard components to match.
+
+### Font Weight Changes (Global)
+
+| Element | Old Weight | New Weight |
+|---------|------------|------------|
+| Body text | 400 | **500** |
+| Labels | 500 | **600** |
+| Section headers (overline) | 500 | **600** |
+| Active tab label | 600 | **700** |
+| Inactive tab label | 400 | **500** |
+| Icon stroke (active) | 2 | **2.5** |
+| Icon stroke (inactive) | 1.5 | **2** |
+
+### Color Updates (Global)
+
+| Token | Old Value | New Value | Reason |
+|-------|-----------|-----------|--------|
+| textPrimary | #3D352F | **#2D2420** | Better contrast |
+| textSecondary | #7A6E66 | **#6B5D54** | Better contrast |
+| textTertiary | #A89E96 | **#9A8E86** | Better contrast |
+
+---
+
+# 🥇 Component Breakdown with States
+
+## 1. LogHeader
+
+**Component Name:** `LogHeader`
+
+**Props:**
+| Prop | Type | Required | Description |
+|------|------|----------|-------------|
+| date | Date | Yes | Date being logged |
+
+**States:**
+| State | Behavior |
+|-------|----------|
+| Default | Shows formatted date (e.g., "Wednesday, Dec 25") |
+
+**Notes:**
+- Same format as Dashboard header
+- V2 will add left/right arrows to navigate days
+
+---
+
+## 2. MacroInput
+
+**Component Name:** `MacroInput`
+
+**Props:**
+| Prop | Type | Required | Description |
+|------|------|----------|-------------|
+| label | string | Yes | "Protein", "Carbs", or "Fat" |
+| total | number | Yes | Current total for the day |
+| goal | number | Yes | Daily goal |
+| onAdd | (value: number) => void | Yes | Callback when user adds grams |
+
+**Internal State:**
+- `inputValue: string` — Current input field value
+
+**States:**
+| State | Behavior |
+|-------|----------|
+| Empty Input | Add button disabled (muted style) |
+| Has Input | Add button enabled (dark primary style) |
+| After Add | Input clears, total updates, button returns to disabled |
+
+**Notes:**
+- Input shows "g" suffix inside field (right-aligned)
+- Input has rounded corners (8px), distinct background
+- Add button matches primary button style
+
+---
+
+## 3. CaloriesSummary
+
+**Component Name:** `CaloriesSummary`
+
+**Props:**
+| Prop | Type | Required | Description |
+|------|------|----------|-------------|
+| protein | number | Yes | Total protein in grams |
+| carbs | number | Yes | Total carbs in grams |
+| fat | number | Yes | Total fat in grams |
+
+**Computed:**
+- `calories = (protein * 4) + (carbs * 4) + (fat * 9)`
+
+**States:**
+| State | Behavior |
+|-------|----------|
+| Default | Shows calculated calories in card |
+
+**Notes:**
+- Background card with rounded corners
+- No manual input — always calculated
+
+---
+
+## 4. SleepInput
+
+**Component Name:** `SleepInput`
+
+**Props:**
+| Prop | Type | Required | Description |
+|------|------|----------|-------------|
+| value | number \| null | Yes | Hours slept |
+| onChange | (value: number) => void | Yes | Update handler |
+
+**States:**
+| State | Behavior |
+|-------|----------|
+| Empty | Shows placeholder "0" |
+| Has Value | Shows entered hours |
+
+**Notes:**
+- Label: "Sleep" with "Last night" hint on right
+- Styled input (rounded, background)
+- "hours" text after input
+
+---
+
+## 5. WeightInput
+
+**Component Name:** `WeightInput`
+
+**Props:**
+| Prop | Type | Required | Description |
+|------|------|----------|-------------|
+| value | number \| null | Yes | Weight in lbs |
+| onChange | (value: number) => void | Yes | Update handler |
+
+**States:**
+| State | Behavior |
+|-------|----------|
+| Empty | Shows placeholder "—" |
+| Has Value | Shows entered weight |
+
+**Notes:**
+- Label: "Weight" (no hint — it's optional but we don't label it as such)
+- Same styled input as Sleep
+- "lbs" text after input
+
+---
+
+## 6. CycleSection
+
+**Component Name:** `CycleSection`
+
+**Props:**
+| Prop | Type | Required | Description |
+|------|------|----------|-------------|
+| phase | string | Yes | Current phase (calculated) |
+| cycleDay | number | Yes | Day within cycle (calculated) |
+| nextPeriodIn | number | Yes | Days until next predicted period |
+| isPeriodDay | boolean \| null | Yes | Today's period status |
+| onPeriodDayChange | (value: boolean) => void | Yes | Update handler |
+
+**States:**
+| State | Behavior |
+|-------|----------|
+| Not Set | Neither Yes nor No selected |
+| Yes Selected | Yes button active (accent color) |
+| No Selected | No button active (accent color) |
+
+**Layout:**
+1. Phase badge at top (same as Dashboard)
+2. "Next period in ~X days" text below badge
+3. "Period day?" label
+4. Yes / No toggle buttons
+
+**Notes:**
+- Phase badge is display-only (calculated by app from period history)
+- Prediction is calculated server-side based on historical data
+
+---
+
+## 7. StepsCard
+
+**Component Name:** `StepsCard`
+
+**Props:**
+| Prop | Type | Required | Description |
+|------|------|----------|-------------|
+| steps | number | Yes | Current step count |
+| goal | number | Yes | Daily step goal |
+
+**States:**
+| State | Behavior |
+|-------|----------|
+| Default | Shows steps with background card |
+| Syncing | Could show subtle loading indicator (V2) |
+
+**Notes:**
+- Wrapped in background card for prominence
+- "Auto-synced" label
+- Shows "/ 10,000" goal below number
+- No input — display only (mock data for V1, HealthKit for V2)
+
+---
+
+## 8. RatingInput
+
+**Component Name:** `RatingInput`
+
+**Props:**
+| Prop | Type | Required | Description |
+|------|------|----------|-------------|
+| label | string | Yes | "Energy", "Hunger", or "Motivation" |
+| value | number \| null | Yes | Selected rating (1-5) |
+| savedValue | number \| null | Yes | Last saved rating |
+| onChange | (value: number) => void | Yes | Selection handler |
+| onSave | () => void | Yes | Save handler |
+
+**Computed:**
+- `isSaved = savedValue !== null && value === savedValue`
+
+**States:**
+| State | Behavior |
+|-------|----------|
+| Empty | No rating selected, Save button disabled |
+| Selected | Rating highlighted, Save button enabled |
+| Saved | Green checkmark + "Saved" label, Save button disabled |
+| Changed After Save | Save button re-enables |
+
+**Notes:**
+- 5 rating buttons (1-5) in a row
+- Save button to the right
+- Each rating is independent (can save Energy without saving Hunger)
+
+---
+
+## 9. StyledInput (Base Component)
+
+**Component Name:** `StyledInput`
+
+**Props:**
+| Prop | Type | Required | Default | Description |
+|------|------|----------|---------|-------------|
+| value | string \| number | Yes | — | Input value |
+| onChange | (value: string) => void | Yes | — | Change handler |
+| placeholder | string | No | "0" | Placeholder text |
+| width | number | No | 100 | Width in pixels |
+| type | string | No | "number" | Input type |
+
+**Styling:**
+```css
+{
+  padding: 16px;
+  font-size: 20px;
+  font-weight: 700;
+  border: 2px solid #E5DDD8;
+  background: #FAF8F7;
+  border-radius: 8px;
+  text-align: center;
+}
+```
+
+---
+
+## 10. PrimaryButton (Base Component)
+
+**Component Name:** `PrimaryButton`
+
+**Props:**
+| Prop | Type | Required | Default | Description |
+|------|------|----------|---------|-------------|
+| children | ReactNode | Yes | — | Button text |
+| onClick | () => void | Yes | — | Click handler |
+| disabled | boolean | No | false | Disabled state |
+| variant | 'default' \| 'small' | No | 'default' | Size variant |
+
+**Styling:**
+```css
+/* Default */
+{
+  padding: 16px 28px;
+  font-size: 16px;
+  font-weight: 700;
+  background: #3D352F;  /* buttonPrimary */
+  color: #FFFFFF;
+  border: none;
+  border-radius: 8px;
+}
+
+/* Small variant */
+{
+  padding: 12px 20px;
+  font-size: 14px;
+}
+
+/* Disabled */
+{
+  background: #FAF2EF;  /* bgAccent */
+  color: #9A8E86;       /* textTertiary */
+  opacity: 0.6;
+}
+```
+
+---
+
+# 🥈 Design Tokens / Style Guide (Updated)
+
+```css
+:root {
+  /* ========== COLORS ========== */
+  
+  /* Backgrounds */
+  --color-bg-primary: #FDF9F8;
+  --color-bg-surface: #FFFFFF;
+  --color-bg-accent: #FAF2EF;
+  --color-bg-input: #FAF8F7;       /* NEW: Distinct input background */
+  
+  /* Borders */
+  --color-border-default: #F0E8E4;
+  --color-border-input: #E5DDD8;   /* NEW: Stronger input border */
+  
+  /* Text - UPDATED for better contrast */
+  --color-text-primary: #2D2420;   /* Darker than before */
+  --color-text-secondary: #6B5D54;
+  --color-text-tertiary: #9A8E86;
+  
+  /* Progress */
+  --color-progress-track: #F5EDEA;
+  --color-progress-fill: #CBA090;
+  --color-gradient-start: #C9988A;
+  --color-gradient-end: #DBBEB4;
+  
+  /* Accent */
+  --color-accent: #C9907E;
+  --color-accent-soft: #FAE8E2;
+  
+  /* Buttons */
+  --color-button-primary: #3D352F;  /* NEW: Dark button background */
+  --color-button-text: #FFFFFF;
+  
+  /* Feedback */
+  --color-success: #6B8F64;
+  
+  /* Cycle */
+  --color-cycle-bg: #FAE8E2;
+  --color-cycle-text: #B07E6C;
+  
+  
+  /* ========== TYPOGRAPHY - UPDATED ========== */
+  
+  --font-family: "DM Sans", -apple-system, BlinkMacSystemFont, sans-serif;
+  
+  /* Display (large numbers) */
+  --font-display-large: 700 52px/1 var(--font-family);
+  --font-display-medium: 700 44px/1 var(--font-family);
+  
+  /* Titles */
+  --font-title-large: 700 28px/1 var(--font-family);
+  --font-title-medium: 600 20px/1.2 var(--font-family);
+  
+  /* Body */
+  --font-body-large: 500 17px/1.4 var(--font-family);   /* Was 400 */
+  --font-body-medium: 500 15px/1.4 var(--font-family);  /* Was 400 */
+  
+  /* Labels */
+  --font-label-large: 600 16px/1.3 var(--font-family);  /* Was 500 */
+  --font-label-medium: 600 14px/1.3 var(--font-family); /* Was 500 */
+  --font-label-small: 600 13px/1.3 var(--font-family);  /* Was 500 */
+  
+  /* Caption & Overline */
+  --font-caption: 500 13px/1.3 var(--font-family);      /* Was 400 */
+  --font-overline: 600 12px/1.3 var(--font-family);     /* Was 500 */
+  
+  /* Date Header */
+  --font-date-header: 600 18px/1.3 var(--font-family);
+  
+  
+  /* ========== SPACING ========== */
+  
+  --section-padding: 24px;
+  --section-header-margin: 20px;
+  --input-group-margin: 28px;
+  --label-margin: 14px;
+  
+  
+  /* ========== BORDERS ========== */
+  
+  --border-radius-none: 0px;       /* Progress bars */
+  --border-radius-small: 8px;      /* Inputs, buttons, cards */
+  --border-radius-full: 24px;      /* Badges */
+  --border-width-default: 1px;
+  --border-width-input: 2px;
+  
+  
+  /* ========== COMPONENT SIZES ========== */
+  
+  /* Inputs */
+  --input-padding: 16px;
+  --input-font-size: 20px;
+  --input-min-width: 100px;
+  
+  /* Buttons */
+  --button-padding: 16px 28px;
+  --button-padding-small: 12px 20px;
+  --button-font-size: 16px;
+  --button-font-size-small: 14px;
+  
+  /* Rating buttons */
+  --rating-button-padding: 16px 0;
+  --rating-button-font-size: 18px;
+}
+```
+
+---
+
+# 🥉 Screen Layout Specification
+
+## Log Screen
+
+```
+┌─────────────────────────────────────────────┐
+│ 24px padding                                │
+│                                             │
+│  Wednesday, Dec 25                          │ ← Header (date only)
+│                                             │
+├─────────────────────────────────────────────┤
+│                                             │
+│  MACROS                                     │
+│                                             │
+│  Protein                          75 / 120g │
+│  ┌──────────────────────────┐ ┌─────────┐  │
+│  │ 0                      g │ │   Add   │  │ ← Rounded input + dark button
+│  └──────────────────────────┘ └─────────┘  │
+│                                             │
+│  Carbs                          135 / 250g │
+│  ┌──────────────────────────┐ ┌─────────┐  │
+│  │ 0                      g │ │   Add   │  │
+│  └──────────────────────────┘ └─────────┘  │
+│                                             │
+│  Fat                             35 / 65g  │
+│  ┌──────────────────────────┐ ┌─────────┐  │
+│  │ 0                      g │ │   Add   │  │
+│  └──────────────────────────┘ └─────────┘  │
+│                                             │
+│  ┌─────────────────────────────────────┐   │
+│  │  Total Calories                1055 │   │ ← Background card
+│  └─────────────────────────────────────┘   │
+│                                             │
+├─────────────────────────────────────────────┤
+│                                             │
+│  BODY                                       │
+│                                             │
+│  Sleep                           Last night │
+│  ┌────────┐                                │
+│  │  7.5   │  hours                         │
+│  └────────┘                                │
+│                                             │
+│  Weight                                     │
+│  ┌────────┐                                │
+│  │   —    │  lbs                           │
+│  └────────┘                                │
+│                                             │
+├─────────────────────────────────────────────┤
+│                                             │
+│  CYCLE                                      │
+│                                             │
+│  ┌──────────────────────┐                  │
+│  │ 💧 Follicular · Day 8 │ ← Phase badge   │
+│  └──────────────────────┘                  │
+│  Next period in ~6 days                    │
+│                                             │
+│  Period day?                               │
+│  ┌─────────────┐  ┌─────────────┐          │
+│  │     Yes     │  │     No      │  ← Toggle │
+│  └─────────────┘  └─────────────┘          │
+│                                             │
+├─────────────────────────────────────────────┤
+│                                             │
+│  ACTIVITY                                   │
+│                                             │
+│  ┌─────────────────────────────────────┐   │
+│  │  Steps                        6,234 │   │ ← Background card
+│  │  Auto-synced                / 10,000│   │
+│  └─────────────────────────────────────┘   │
+│                                             │
+├─────────────────────────────────────────────┤
+│                                             │
+│  HOW YOU FEEL                              │
+│                                             │
+│  Energy                                     │
+│  ┌───┐ ┌───┐ ┌───┐ ┌───┐ ┌───┐ ┌────────┐ │
+│  │ 1 │ │ 2 │ │ 3 │ │ 4 │ │ 5 │ │  Save  │ │
+│  └───┘ └───┘ └───┘ └───┘ └───┘ └────────┘ │
+│                                             │
+│  Hunger                            ✓ Saved │
+│  ┌───┐ ┌───┐ ┌███┐ ┌───┐ ┌───┐ ┌────────┐ │
+│  │ 1 │ │ 2 │ │ 3 │ │ 4 │ │ 5 │ │  Save  │ │
+│  └───┘ └───┘ └───┘ └───┘ └───┘ └────────┘ │
+│                                             │
+│  Motivation                                │
+│  ┌───┐ ┌───┐ ┌───┐ ┌───┐ ┌───┐ ┌────────┐ │
+│  │ 1 │ │ 2 │ │ 3 │ │ 4 │ │ 5 │ │  Save  │ │
+│  └───┘ └───┘ └───┘ └───┘ └───┘ └────────┘ │
+│                                             │
+├─────────────────────────────────────────────┤
+│                                             │
+│    [⊞]           [＋]           [📊]        │
+│  Dashboard        Log         Overview      │
+│                                             │
+└─────────────────────────────────────────────┘
+```
+
+---
+
+# Data Model (Log Entry)
+
+```typescript
+interface DailyLog {
+  id: string;
+  userId: string;
+  date: string;  // ISO date: "2024-12-25"
+  
+  // Macros (stored as running totals)
+  proteinGrams: number;
+  carbsGrams: number;
+  fatGrams: number;
+  // Calculated: caloriesTotal = (protein * 4) + (carbs * 4) + (fat * 9)
+  
+  // Body
+  sleepHours: number | null;
+  weightLbs: number | null;
+  
+  // Cycle
+  isPeriodDay: boolean | null;
+  // Calculated server-side from period history:
+  // cyclePhase, cycleDay, nextPeriodPrediction
+  
+  // Activity
+  steps: number;  // From HealthKit (V2) or mock (V1)
+  
+  // Subjective
+  energyRating: 1 | 2 | 3 | 4 | 5 | null;
+  hungerRating: 1 | 2 | 3 | 4 | 5 | null;
+  motivationRating: 1 | 2 | 3 | 4 | 5 | null;
+  
+  // Metadata
+  createdAt: string;
+  updatedAt: string;
+}
+
+interface CycleInfo {
+  phase: 'menstrual' | 'follicular' | 'ovulation' | 'luteal';
+  cycleDay: number;
+  nextPeriodIn: number;  // Days until predicted next period
+}
+```
+
+---
+
+# API Endpoints (Suggested)
+
+```
+GET    /api/log/:date          → Get log for specific date
+POST   /api/log/:date          → Create/update log for date
+PATCH  /api/log/:date/macros   → Add macro entry (increments totals)
+PATCH  /api/log/:date/rating   → Save single rating
+GET    /api/cycle/current      → Get calculated cycle info
+```
+
+---
+
+# File Structure (Updated)
+
+```
+src/
+├── components/
+│   ├── ui/
+│   │   ├── ProgressBar.tsx
+│   │   ├── ProgressRing.tsx
+│   │   ├── Section.tsx
+│   │   ├── StyledInput.tsx      ← NEW
+│   │   └── PrimaryButton.tsx    ← NEW
+│   ├── dashboard/
+│   │   ├── Header.tsx
+│   │   ├── CycleBadge.tsx
+│   │   ├── CalorieCard.tsx
+│   │   ├── MacroCard.tsx
+│   │   ├── StepsRing.tsx
+│   │   └── SleepDisplay.tsx
+│   ├── log/                      ← NEW
+│   │   ├── LogHeader.tsx
+│   │   ├── MacroInput.tsx
+│   │   ├── CaloriesSummary.tsx
+│   │   ├── SleepInput.tsx
+│   │   ├── WeightInput.tsx
+│   │   ├── CycleSection.tsx
+│   │   ├── StepsCard.tsx
+│   │   └── RatingInput.tsx
+│   └── navigation/
+│       └── TabBar.tsx
+├── screens/
+│   ├── DashboardScreen.tsx
+│   └── LogScreen.tsx             ← NEW
+├── styles/
+│   └── tokens.css                ← UPDATE with new tokens
+└── types/
+    └── fitness.ts
+```
+
+---
+
+# Dev Checklist
+
+### Global Updates (Apply to existing Dashboard)
+- [ ] Update text colors for better contrast
+- [ ] Update font weights throughout
+- [ ] Update tab bar icon strokes
+
+### New Components
+- [ ] Build `StyledInput` base component
+- [ ] Build `PrimaryButton` base component
+- [ ] Build `MacroInput` with Add functionality
+- [ ] Build `CaloriesSummary` card
+- [ ] Build `SleepInput`
+- [ ] Build `WeightInput`
+- [ ] Build `CycleSection` with badge + prediction + toggle
+- [ ] Build `StepsCard` with background
+- [ ] Build `RatingInput` with Save button
+- [ ] Build `LogHeader`
+
+### Screen Assembly
+- [ ] Compose `LogScreen` from components
+- [ ] Wire up local state management
+- [ ] Add navigation from TabBar
+- [ ] Test all input interactions
+
+### V2 Features (Not for V1)
+- [ ] Date navigation arrows in header
+- [ ] HealthKit integration for steps
+- [ ] Edit past day's log
+
+---
+
+*Generated: December 2025*
+*Builds on Dashboard Handoff doc — reference that for shared components*

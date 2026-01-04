@@ -116,8 +116,23 @@ interface SevenDayAverages {
   sleep: number | null;
 }
 
+/**
+ * Chart types that can be shown on the dashboard
+ * Extend this union as new charts are added
+ */
+type ChartType = 'weight_trend';
+
+/**
+ * Dashboard preferences - which charts are visible on the dashboard
+ */
+type DashboardPrefs = Record<ChartType, boolean>;
+
+const DEFAULT_DASHBOARD_PREFS: DashboardPrefs = {
+  weight_trend: false,
+};
+
 // Export types for other files to use
-export type { DailyLog, UserGoals, CycleInfo, Rating, CyclePhase, CycleData, MacroNutrient, UserProfile, CycleSettings, WeightDataPoint, SevenDayAverages };
+export type { DailyLog, UserGoals, CycleInfo, Rating, CyclePhase, CycleData, MacroNutrient, UserProfile, CycleSettings, WeightDataPoint, SevenDayAverages, ChartType, DashboardPrefs };
 
 // Utility function to calculate calories from macros
 export function calculateCalories(protein: number, carbs: number, fat: number): number {
@@ -135,6 +150,7 @@ interface AppContextValue {
   profile: UserProfile;
   cycleSettings: CycleSettings;
   isLoading: boolean;
+  dashboardPrefs: DashboardPrefs;
   
   addMacro: (type: 'protein' | 'carbs' | 'fat', grams: number) => void;
   setSleep: (hours: number) => void;
@@ -149,6 +165,9 @@ interface AppContextValue {
   updateCycleSettings: (field: keyof CycleSettings, value: number | string) => Promise<void>;
   getWeightHistory: (days: '7d' | '14d' | '30d') => Promise<WeightDataPoint[]>;
   getSevenDayAverages: () => Promise<SevenDayAverages>;
+  
+  // Dashboard preferences
+  setChartVisibility: (chartType: ChartType, visible: boolean) => Promise<void>;
 }
 
 const AppContext = createContext<AppContextValue | undefined>(undefined);
@@ -318,6 +337,7 @@ export function AppProvider({ children }: AppProviderProps) {
     lastPeriodStartDate: null,
   });
   const [isLoading, setIsLoading] = useState(true);
+  const [dashboardPrefs, setDashboardPrefs] = useState<DashboardPrefs>(DEFAULT_DASHBOARD_PREFS);
   
   /**
    * Calculate cycle info from saved settings.
@@ -403,6 +423,24 @@ export function AppProvider({ children }: AppProviderProps) {
         averagePeriodDays: profileData.period_length_days || 5,
         lastPeriodStartDate: profileData.last_period_start,
       });
+    }
+
+    // Load dashboard preferences
+    const { data: prefsData } = await supabase
+      .from('dashboard_preferences')
+      .select('chart_type, is_visible')
+      .eq('user_id', user.id);
+
+    if (prefsData && prefsData.length > 0) {
+      const prefs: DashboardPrefs = { ...DEFAULT_DASHBOARD_PREFS };
+      prefsData.forEach((row: { chart_type: string; is_visible: boolean }) => {
+        if (row.chart_type in prefs) {
+          prefs[row.chart_type as ChartType] = row.is_visible;
+        }
+      });
+      setDashboardPrefs(prefs);
+    } else {
+      setDashboardPrefs(DEFAULT_DASHBOARD_PREFS);
     }
 
     setIsLoading(false);
@@ -723,6 +761,35 @@ export function AppProvider({ children }: AppProviderProps) {
     };
   }, [user]);
 
+  /**
+   * Toggle chart visibility on the dashboard.
+   * Persists to Supabase for cross-device sync.
+   */
+  const setChartVisibility = useCallback(async (chartType: ChartType, visible: boolean) => {
+    if (!user) return;
+
+    // Optimistically update local state
+    setDashboardPrefs(prev => ({ ...prev, [chartType]: visible }));
+
+    // Persist to Supabase (upsert)
+    const { error } = await supabase
+      .from('dashboard_preferences')
+      .upsert({
+        user_id: user.id,
+        chart_type: chartType,
+        is_visible: visible,
+        updated_at: new Date().toISOString(),
+      }, {
+        onConflict: 'user_id,chart_type'
+      });
+
+    if (error) {
+      console.error('Failed to save dashboard preference:', error);
+      // Revert on error
+      setDashboardPrefs(prev => ({ ...prev, [chartType]: !visible }));
+    }
+  }, [user]);
+
   const value: AppContextValue = {
     todayLog,
     goals,
@@ -730,6 +797,7 @@ export function AppProvider({ children }: AppProviderProps) {
     profile,
     cycleSettings,
     isLoading,
+    dashboardPrefs,
     addMacro,
     setSleep,
     setWeight,
@@ -741,6 +809,7 @@ export function AppProvider({ children }: AppProviderProps) {
     updateCycleSettings,
     getWeightHistory,
     getSevenDayAverages,
+    setChartVisibility,
   };
 
   return (

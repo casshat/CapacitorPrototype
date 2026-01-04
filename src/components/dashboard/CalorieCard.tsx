@@ -63,7 +63,7 @@ function CalorieCard({ consumed, goal, isLoading = false }: CalorieCardProps) {
         </div>
       </div>
       
-      {/* Progress bar - solid variant per spec */}
+      {/* Progress bar */}
       <ProgressBar 
         value={consumed} 
         max={goal} 

@@ -12,7 +12,6 @@
 import { createClient } from '@supabase/supabase-js';
 
 // Supabase project credentials from environment variables
-// These MUST be set in a .env file (not committed to git)
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 

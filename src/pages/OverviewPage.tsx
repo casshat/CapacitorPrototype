@@ -29,11 +29,13 @@ function OverviewPage() {
     goals,
     profile,
     cycleSettings,
+    dashboardPrefs,
     updateGoal,
     updateProfile,
     updateCycleSettings,
     getWeightHistory,
     getSevenDayAverages,
+    setChartVisibility,
   } = useApp();
   
   const { signOut } = useAuth();
@@ -224,10 +226,20 @@ function OverviewPage() {
 
       {/* Weight Trend Section */}
       <Section>
-        <SectionHeader 
-          title="Weight Trend" 
-          action={<ChartRangeSelector value={chartRange} onChange={setChartRange} />}
-        />
+        <div className="section-header-with-toggle">
+          <SectionHeader 
+            title="Weight Trend" 
+            action={<ChartRangeSelector value={chartRange} onChange={setChartRange} />}
+          />
+          <label className="dashboard-checkbox">
+            <input 
+              type="checkbox" 
+              checked={dashboardPrefs.weight_trend}
+              onChange={(e) => setChartVisibility('weight_trend', e.target.checked)}
+            />
+            <span>Add to Dashboard</span>
+          </label>
+        </div>
         <WeightChart data={weightData} days={chartRange} isLoading={isLoadingChart} />
       </Section>
 

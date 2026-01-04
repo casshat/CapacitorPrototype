@@ -1438,3 +1438,65 @@ body {
 .dashboard-checkbox span {
   font-weight: var(--font-weight-medium);
 }
+
+/* ========== APPLE HEALTH LINK SECTION ========== */
+.health-link-section {
+  background: var(--color-bg-accent);
+  border-radius: var(--border-radius-small);
+  padding: var(--section-padding-y);
+}
+
+.health-link-connected {
+  text-align: center;
+}
+
+.health-link-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--color-success);
+  font-size: var(--font-size-body);
+  font-weight: var(--font-weight-medium);
+  margin-bottom: 4px;
+}
+
+.health-link-prompt {
+  text-align: center;
+}
+
+.health-link-description {
+  font-size: var(--font-size-small);
+  color: var(--color-text-secondary);
+  margin-bottom: 12px;
+}
+
+.health-link-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 24px;
+  background: var(--color-button-primary);
+  color: var(--color-button-text);
+  border: none;
+  border-radius: var(--border-radius-small);
+  font-size: var(--font-size-body);
+  font-weight: var(--font-weight-medium);
+  font-family: var(--font-family);
+  cursor: pointer;
+  transition: opacity var(--transition-fast);
+}
+
+.health-link-button:hover:not(:disabled) {
+  opacity: 0.9;
+}
+
+.health-link-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.health-link-error {
+  margin-top: 12px;
+  font-size: var(--font-size-small);
+  color: #B91C1C;
+}

@@ -12,6 +12,8 @@
 import { useState } from 'react';
 import { useApp, calculateCalories } from '../context/AppContext';
 import type { Rating } from '../context/AppContext';
+import { useHealthKit } from '../hooks/useHealthKit';
+import { Check } from 'lucide-react';
 
 // UI components
 import Section from '../components/ui/Section';
@@ -46,6 +48,15 @@ function LogPage() {
   const [localEnergy, setLocalEnergy] = useState<Rating | null>(todayLog.energyRating);
   const [localHunger, setLocalHunger] = useState<Rating | null>(todayLog.hungerRating);
   const [localMotivation, setLocalMotivation] = useState<Rating | null>(todayLog.motivationRating);
+
+  // HealthKit integration
+  const { 
+    isAvailable: healthKitAvailable, 
+    isLinked: healthKitLinked, 
+    isLoading: healthKitLoading,
+    error: healthKitError,
+    linkHealth 
+  } = useHealthKit();
 
   // Format today's date
   const formattedDate = new Intl.DateTimeFormat('en-US', {
@@ -146,7 +157,7 @@ function LogPage() {
       </Section>
 
       {/* HOW YOU FEEL Section */}
-      <Section noBorder>
+      <Section>
         <SectionHeader title="HOW YOU FEEL" />
         
         <RatingInput
@@ -179,6 +190,45 @@ function LogPage() {
           }}
         />
       </Section>
+
+      {/* APPLE HEALTH Section - only shows on iOS devices */}
+      {healthKitAvailable && (
+        <Section noBorder>
+          <SectionHeader title="APPLE HEALTH" />
+          
+          <div className="health-link-section">
+            {healthKitLinked ? (
+              // Connected state
+              <div className="health-link-connected">
+                <div className="health-link-status">
+                  <Check size={18} />
+                  <span>Connected</span>
+                </div>
+                <p className="health-link-description">
+                  Steps are synced from Apple Health
+                </p>
+              </div>
+            ) : (
+              // Not linked state
+              <div className="health-link-prompt">
+                <p className="health-link-description">
+                  Connect to automatically sync your step count
+                </p>
+                <button 
+                  className="health-link-button"
+                  onClick={linkHealth}
+                  disabled={healthKitLoading}
+                >
+                  {healthKitLoading ? 'Connecting...' : 'Link Apple Health'}
+                </button>
+                {healthKitError && (
+                  <p className="health-link-error">{healthKitError}</p>
+                )}
+              </div>
+            )}
+          </div>
+        </Section>
+      )}
     </div>
   );
 }

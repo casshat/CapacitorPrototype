@@ -11,6 +11,7 @@ import { createContext, useContext, useState, useEffect, useCallback, useMemo } 
 import type { ReactNode } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from './AuthContext';
+import { isHealthKitAvailable, getStepCount } from '../services/healthkit';
 
 // ============================================================================
 // TYPES
@@ -441,6 +442,41 @@ export function AppProvider({ children }: AppProviderProps) {
       setDashboardPrefs(prefs);
     } else {
       setDashboardPrefs(DEFAULT_DASHBOARD_PREFS);
+    }
+
+    // Sync steps from HealthKit if available and linked
+    try {
+      const healthKitLinked = localStorage.getItem('healthkit_linked') === 'true';
+      if (healthKitLinked) {
+        const available = await isHealthKitAvailable();
+        if (available) {
+          // Get start of today in local timezone
+          const now = new Date();
+          const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0);
+          const stepCount = await getStepCount(startOfDay, now);
+          
+          // Update steps in state (will also save to Supabase via setSteps)
+          if (stepCount > 0) {
+            // Update local state directly to avoid circular dependency
+            setTodayLog(prev => {
+              if (prev.steps !== stepCount) {
+                const newLog = { ...prev, steps: stepCount, updatedAt: new Date().toISOString() };
+                // Save to Supabase
+                supabase.from('daily_logs').upsert({
+                  user_id: user.id,
+                  log_date: newLog.date,
+                  steps: stepCount,
+                  updated_at: new Date().toISOString(),
+                }, { onConflict: 'user_id,log_date' });
+                return newLog;
+              }
+              return prev;
+            });
+          }
+        }
+      }
+    } catch (error) {
+      console.warn('HealthKit sync failed:', error);
     }
 
     setIsLoading(false);

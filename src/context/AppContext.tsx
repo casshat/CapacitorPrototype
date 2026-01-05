@@ -530,6 +530,8 @@ export function AppProvider({ children }: AppProviderProps) {
    * This runs AFTER initial data is loaded from Supabase.
    * Steps are fetched from Apple Health and saved to the database
    * so they're available on web too.
+   * 
+   * IMPORTANT: We only update the 'steps' field to avoid overwriting other data.
    */
   useEffect(() => {
     async function syncHealthKitSteps() {
@@ -551,21 +553,33 @@ export function AppProvider({ children }: AppProviderProps) {
         const stepCount = await getStepCount(startOfDay, now);
 
         // Only update if we got steps and they're different from current value
-        if (stepCount > 0 && stepCount !== todayLog.steps) {
-          console.log(`Syncing HealthKit steps: ${stepCount} (was ${todayLog.steps})`);
+        if (stepCount > 0) {
+          console.log(`Syncing HealthKit steps: ${stepCount}`);
           
-          // Create updated log with new step count
-          const updatedLog: DailyLog = {
-            ...todayLog,
-            steps: stepCount,
-            updatedAt: new Date().toISOString(),
-          };
+          // Update local state using functional update to get latest value
+          setTodayLog(prev => {
+            if (prev.steps === stepCount) {
+              return prev; // No change needed
+            }
+            return {
+              ...prev,
+              steps: stepCount,
+              updatedAt: new Date().toISOString(),
+            };
+          });
 
-          // Update local state
-          setTodayLog(updatedLog);
-
-          // Save to Supabase (this ensures web can see the steps too)
-          await saveToSupabase(updatedLog);
+          // Save ONLY steps to Supabase (don't overwrite other fields!)
+          const today = getLocalDateString();
+          await supabase
+            .from('daily_logs')
+            .upsert({
+              user_id: user.id,
+              log_date: today,
+              steps: stepCount,
+              updated_at: new Date().toISOString(),
+            }, {
+              onConflict: 'user_id,log_date'
+            });
         }
       } catch (error) {
         console.warn('HealthKit sync failed:', error);

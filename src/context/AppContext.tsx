@@ -444,41 +444,6 @@ export function AppProvider({ children }: AppProviderProps) {
       setDashboardPrefs(DEFAULT_DASHBOARD_PREFS);
     }
 
-    // Sync steps from HealthKit if available and linked
-    try {
-      const healthKitLinked = localStorage.getItem('healthkit_linked') === 'true';
-      if (healthKitLinked) {
-        const available = await isHealthKitAvailable();
-        if (available) {
-          // Get start of today in local timezone
-          const now = new Date();
-          const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0);
-          const stepCount = await getStepCount(startOfDay, now);
-          
-          // Update steps in state (will also save to Supabase via setSteps)
-          if (stepCount > 0) {
-            // Update local state directly to avoid circular dependency
-            setTodayLog(prev => {
-              if (prev.steps !== stepCount) {
-                const newLog = { ...prev, steps: stepCount, updatedAt: new Date().toISOString() };
-                // Save to Supabase
-                supabase.from('daily_logs').upsert({
-                  user_id: user.id,
-                  log_date: newLog.date,
-                  steps: stepCount,
-                  updated_at: new Date().toISOString(),
-                }, { onConflict: 'user_id,log_date' });
-                return newLog;
-              }
-              return prev;
-            });
-          }
-        }
-      }
-    } catch (error) {
-      console.warn('HealthKit sync failed:', error);
-    }
-
     setIsLoading(false);
   }, [user]); // <-- Dependency array: recreate only when user changes
 
@@ -559,6 +524,56 @@ export function AppProvider({ children }: AppProviderProps) {
         onConflict: 'user_id,log_date'
       });
   }, [user]);
+
+  /**
+   * Sync steps from HealthKit when app loads on iOS.
+   * This runs AFTER initial data is loaded from Supabase.
+   * Steps are fetched from Apple Health and saved to the database
+   * so they're available on web too.
+   */
+  useEffect(() => {
+    async function syncHealthKitSteps() {
+      // Only sync when we have a user and loading is complete
+      if (!user || isLoading) return;
+
+      // Check if HealthKit is linked
+      const healthKitLinked = localStorage.getItem('healthkit_linked') === 'true';
+      if (!healthKitLinked) return;
+
+      try {
+        // Check if HealthKit is available (only on iOS)
+        const available = await isHealthKitAvailable();
+        if (!available) return;
+
+        // Get start of today in local timezone
+        const now = new Date();
+        const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0);
+        const stepCount = await getStepCount(startOfDay, now);
+
+        // Only update if we got steps and they're different from current value
+        if (stepCount > 0 && stepCount !== todayLog.steps) {
+          console.log(`Syncing HealthKit steps: ${stepCount} (was ${todayLog.steps})`);
+          
+          // Create updated log with new step count
+          const updatedLog: DailyLog = {
+            ...todayLog,
+            steps: stepCount,
+            updatedAt: new Date().toISOString(),
+          };
+
+          // Update local state
+          setTodayLog(updatedLog);
+
+          // Save to Supabase (this ensures web can see the steps too)
+          await saveToSupabase(updatedLog);
+        }
+      } catch (error) {
+        console.warn('HealthKit sync failed:', error);
+      }
+    }
+
+    syncHealthKitSteps();
+  }, [user, isLoading]); // Only re-run when user or loading state changes
 
   // Update functions
   const addMacro = (type: 'protein' | 'carbs' | 'fat', grams: number) => {

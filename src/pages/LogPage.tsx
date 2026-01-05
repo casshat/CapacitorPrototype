@@ -9,7 +9,7 @@
  * - Managing ratings with local state before save
  */
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useApp, calculateCalories } from '../context/AppContext';
 import type { Rating } from '../context/AppContext';
 import { useHealthKit } from '../hooks/useHealthKit';
@@ -41,7 +41,8 @@ function LogPage() {
     setSleep, 
     setWeight, 
     setPeriodDay,
-    setRating 
+    setRating,
+    setSteps
   } = useApp();
 
   // Local state for ratings (before save)
@@ -54,9 +55,17 @@ function LogPage() {
     isAvailable: healthKitAvailable, 
     isLinked: healthKitLinked, 
     isLoading: healthKitLoading,
+    steps: healthKitSteps,
     error: healthKitError,
     linkHealth 
   } = useHealthKit();
+
+  // When HealthKit returns steps, save them to the database via context
+  useEffect(() => {
+    if (healthKitLinked && healthKitSteps > 0 && healthKitSteps !== todayLog.steps) {
+      setSteps(healthKitSteps);
+    }
+  }, [healthKitLinked, healthKitSteps, todayLog.steps, setSteps]);
 
   // Format today's date
   const formattedDate = new Intl.DateTimeFormat('en-US', {

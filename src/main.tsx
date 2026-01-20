@@ -3,6 +3,7 @@ import { createRoot } from 'react-dom/client';
 import { BrowserRouter } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
 import { AppProvider } from './context/AppContext';
+import { FoodLogProvider } from './context/FoodLogContext';
 import { ThemeProvider } from './context/ThemeContext';
 import './index.css';
 import App from './App.tsx';
@@ -13,7 +14,9 @@ createRoot(document.getElementById('root')!).render(
       <ThemeProvider>
         <AuthProvider>
           <AppProvider>
-            <App />
+            <FoodLogProvider>
+              <App />
+            </FoodLogProvider>
           </AppProvider>
         </AuthProvider>
       </ThemeProvider>

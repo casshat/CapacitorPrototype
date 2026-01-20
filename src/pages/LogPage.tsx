@@ -2,25 +2,27 @@
  * LogPage - Food and health logging screen
  * 
  * This page allows users to log their daily health data.
- * All data is saved to context and synced to localStorage.
- * 
- * TypeScript Concepts:
- * - Using context for state management
- * - Managing ratings with local state before save
+ * Food entries are managed through FoodLogContext.
+ * Other data is saved to AppContext and synced to Supabase.
  */
 
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { Plus, ChevronDown, ChevronUp } from 'lucide-react';
 import { useApp, calculateCalories } from '../context/AppContext';
+import { useFoodLog } from '../context/FoodLogContext';
 import type { Rating } from '../context/AppContext';
 import { useHealthKit } from '../hooks/useHealthKit';
 
 // UI components
 import Section from '../components/ui/Section';
 import SectionHeader from '../components/ui/SectionHeader';
+import Toast from '../components/ui/Toast';
+
+// Food components
+import { ProgressCard, FoodLogRow } from '../components/food';
 
 // Log components
-import MacroInput from '../components/log/MacroInput';
-import CaloriesSummary from '../components/log/CaloriesSummary';
 import SleepInput from '../components/log/SleepInput';
 import WeightInput from '../components/log/WeightInput';
 import StepsCardLog from '../components/log/StepsCardLog';
@@ -31,12 +33,13 @@ import RatingInput from '../components/log/RatingInput';
  * LogPage - Main logging screen
  */
 function LogPage() {
+  const navigate = useNavigate();
+  
   // Get data and update functions from context
   const { 
     todayLog, 
     goals, 
     cycleInfo,
-    addMacro, 
     setSleep, 
     setWeight, 
     setPeriodDay,
@@ -44,10 +47,22 @@ function LogPage() {
     setSteps
   } = useApp();
 
+  // Get food log data
+  const {
+    foodEntries,
+    dailyTotals,
+    deleteFoodEntry,
+    toast,
+    hideToast,
+  } = useFoodLog();
+
   // Local state for ratings (before save)
   const [localEnergy, setLocalEnergy] = useState<Rating | null>(todayLog.energyRating);
   const [localHunger, setLocalHunger] = useState<Rating | null>(todayLog.hungerRating);
   const [localMotivation, setLocalMotivation] = useState<Rating | null>(todayLog.motivationRating);
+
+  // Collapsible state for food entries
+  const [isEntriesExpanded, setIsEntriesExpanded] = useState(false);
 
   // HealthKit integration (steps sync still happens here, but UI moved to Settings)
   const { 
@@ -76,6 +91,18 @@ function LogPage() {
     goals.fatGoal
   );
 
+  const handleAddFood = () => {
+    navigate('/log/add');
+  };
+
+  const toggleEntriesExpanded = () => {
+    setIsEntriesExpanded(prev => !prev);
+  };
+
+  const handleDeleteFood = (id: string) => {
+    deleteFoodEntry(id);
+  };
+
   return (
     <div className="log-page">
       {/* Header */}
@@ -83,37 +110,53 @@ function LogPage() {
         <span className="dashboard-date">{formattedDate}</span>
       </header>
 
-      {/* MACROS Section */}
+      {/* FOOD LOG Section */}
       <Section>
-        <SectionHeader title="MACROS" />
+        <SectionHeader title="FOOD LOG" />
         
-        <MacroInput
-          label="Protein"
-          total={todayLog.proteinGrams}
-          goal={goals.proteinGoal}
-          onAdd={(g) => addMacro('protein', g)}
+        {/* Progress Card - always visible */}
+        <ProgressCard
+          calories={{ current: dailyTotals.calories, goal: caloriesGoal }}
+          protein={{ current: dailyTotals.protein, goal: goals.proteinGoal }}
+          carbs={{ current: dailyTotals.carbs, goal: goals.carbsGoal }}
+          fat={{ current: dailyTotals.fat, goal: goals.fatGoal }}
         />
         
-        <MacroInput
-          label="Carbs"
-          total={todayLog.carbsGrams}
-          goal={goals.carbsGoal}
-          onAdd={(g) => addMacro('carbs', g)}
-        />
+        {/* Collapsible food entries section */}
+        {foodEntries.length > 0 && (
+          <div className="food-entries-collapsible">
+            <button 
+              className="food-entries-collapsible__header"
+              onClick={toggleEntriesExpanded}
+              type="button"
+            >
+              <span className="food-entries-collapsible__title">
+                Today's Entries ({foodEntries.length})
+              </span>
+              <div className="food-entries-collapsible__icon">
+                {isEntriesExpanded ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
+              </div>
+            </button>
+            
+            {isEntriesExpanded && (
+              <div className="food-log-list">
+                {foodEntries.map((entry) => (
+                  <FoodLogRow
+                    key={entry.id}
+                    food={entry}
+                    onDelete={handleDeleteFood}
+                  />
+                ))}
+              </div>
+            )}
+          </div>
+        )}
         
-        <MacroInput
-          label="Fat"
-          total={todayLog.fatGrams}
-          goal={goals.fatGoal}
-          onAdd={(g) => addMacro('fat', g)}
-        />
-        
-        <CaloriesSummary
-          protein={todayLog.proteinGrams}
-          carbs={todayLog.carbsGrams}
-          fat={todayLog.fatGrams}
-          goal={caloriesGoal}
-        />
+        {/* Add Food button */}
+        <button className="add-food-button" onClick={handleAddFood}>
+          <Plus size={20} />
+          <span>Add Food</span>
+        </button>
       </Section>
 
       {/* BODY Section */}
@@ -194,6 +237,14 @@ function LogPage() {
           }}
         />
       </Section>
+
+      {/* Success/Error Toast */}
+      <Toast
+        message={toast.message}
+        type={toast.type}
+        visible={toast.visible}
+        onDismiss={hideToast}
+      />
     </div>
   );
 }

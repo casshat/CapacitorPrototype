@@ -114,7 +114,7 @@ function OverviewPage() {
             </div>
             <div className="goal-readonly-value">
               {calculatedCalories.toLocaleString()} kcal
-              <span className="goal-readonly-note"> (calculated from macros)</span>
+              <span className="goal-readonly-note"></span>
             </div>
           </div>
           

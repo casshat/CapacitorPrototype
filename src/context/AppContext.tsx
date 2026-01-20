@@ -153,7 +153,9 @@ interface AppContextValue {
   isLoading: boolean;
   dashboardPrefs: DashboardPrefs;
   
-  addMacro: (type: 'protein' | 'carbs' | 'fat', grams: number) => void;
+  // Note: Macro logging is now handled by FoodLogContext
+  // The macro fields in todayLog are populated by a database trigger
+  // from food_log_entries for analytics purposes
   setSleep: (hours: number) => void;
   setWeight: (lbs: number) => void;
   setPeriodDay: (isPeriod: boolean) => void;
@@ -590,19 +592,8 @@ export function AppProvider({ children }: AppProviderProps) {
   }, [user, isLoading]); // Only re-run when user or loading state changes
 
   // Update functions
-  const addMacro = (type: 'protein' | 'carbs' | 'fat', grams: number) => {
-    setTodayLog(prev => {
-      const key = `${type}Grams` as 'proteinGrams' | 'carbsGrams' | 'fatGrams';
-      const newLog = {
-        ...prev,
-        [key]: prev[key] + grams,
-        updatedAt: new Date().toISOString(),
-      };
-      newLog.totalCalories = calculateCalories(newLog.proteinGrams, newLog.carbsGrams, newLog.fatGrams);
-      saveToSupabase(newLog);
-      return newLog;
-    });
-  };
+  // Note: addMacro has been removed - macros are now logged via FoodLogContext
+  // and synced to daily_logs via a database trigger
 
   const setSleep = (hours: number) => {
     setTodayLog(prev => {
@@ -863,7 +854,6 @@ export function AppProvider({ children }: AppProviderProps) {
     cycleSettings,
     isLoading,
     dashboardPrefs,
-    addMacro,
     setSleep,
     setWeight,
     setPeriodDay,

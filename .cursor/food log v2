@@ -1,0 +1,1484 @@
+# FitTrack Food Search — Engineering Handoff
+## Complete Design Specifications & Implementation Guide
+
+---
+
+# Table of Contents
+
+1. [Overview](#1-overview)
+2. [Design System](#2-design-system)
+3. [Component Specifications](#3-component-specifications)
+4. [Screen Layouts](#4-screen-layouts)
+5. [Data Models](#5-data-models)
+6. [API Integration](#6-api-integration)
+7. [Business Logic](#7-business-logic)
+8. [State Management](#8-state-management)
+9. [File Structure](#9-file-structure)
+10. [Implementation Checklist](#10-implementation-checklist)
+
+---
+
+# 1. Overview
+
+## 1.1 Feature Summary
+
+Add food logging via search and barcode scanning to the FitTrack app. Users can:
+- Search foods from Open Food Facts and USDA databases
+- Scan product barcodes to auto-populate nutrition data
+- Adjust serving sizes with unit conversion (g ↔ oz)
+- View daily progress toward calorie and macro goals
+
+## 1.2 User Flow Diagram
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                                                                             │
+│  LOG TAB                                                                    │
+│  ┌─────────────────────────┐                                               │
+│  │  Progress Card          │                                               │
+│  │  Food List              │                                               │
+│  │  [+ Add Food]  ─────────┼──────────┐                                    │
+│  └─────────────────────────┘          │                                    │
+│           │                           ▼                                    │
+│           │              ┌─────────────────────────┐                       │
+│           │              │  FOOD SEARCH SCREEN     │                       │
+│           │              │  ┌─────────────────┐    │                       │
+│           │              │  │ [🔍 Search...  ]│[📷]├───┐                   │
+│           │              │  └─────────────────┘    │   │                   │
+│           │              │  Recent Foods           │   │                   │
+│           │              │  ├── Food 1 ──────────┐ │   │                   │
+│           │              │  ├── Food 2           │ │   │                   │
+│           │              │  └── Food 3           │ │   │                   │
+│           │              └───────────────────────┼─┘   │                   │
+│           │                                      │     │                   │
+│           │                                      ▼     ▼                   │
+│           │              ┌─────────────────────────────────────┐           │
+│           │              │  FOOD DETAIL SCREEN   │  BARCODE    │           │
+│           │              │  ┌─────────────────┐  │  SCANNER    │           │
+│           │              │  │ Food Name       │  │  ┌───────┐  │           │
+│           │              │  │ Brand · Source  │  │  │ [   ] │  │           │
+│           │              │  ├─────────────────┤  │  │ Scan  │  │           │
+│           │              │  │ Serving: [100]g │  │  └───┬───┘  │           │
+│           │              │  │ [-] [amt] [+]   │  │      │      │           │
+│           │              │  ├─────────────────┤  │      │      │           │
+│           │              │  │ Calories: 165   │  │      │      │           │
+│           │              │  │ P: 31g C: 0g    │  │      │      │           │
+│           │              │  │ F: 3.6g         │  │      │      │           │
+│           │              │  ├─────────────────┤  │      │      │           │
+│           │              │  │ [+ Add to Log]  │──┼──────┘      │           │
+│           │              │  └─────────────────┘  │             │           │
+│           │              └───────────────────────┴─────────────┘           │
+│           │                           │                                    │
+│           │                           │                                    │
+│           ▼                           ▼                                    │
+│  ┌─────────────────────────────────────────────────────────────┐           │
+│  │  LOG TAB (Updated)                                          │           │
+│  │  ┌─────────────────────────────────────────────────────┐   │           │
+│  │  │  Progress Card (totals updated)                     │   │           │
+│  │  └─────────────────────────────────────────────────────┘   │           │
+│  │  ┌─────────────────────────────────────────────────────┐   │           │
+│  │  │  Food List (new entry added)                        │   │           │
+│  │  │  ✓ Success Toast                                    │   │           │
+│  │  └─────────────────────────────────────────────────────┘   │           │
+│  └─────────────────────────────────────────────────────────────┘           │
+│                                                                             │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+---
+
+# 2. Design System
+
+## 2.1 Color Tokens
+
+```typescript
+const colors = {
+  // Backgrounds
+  bgPrimary: '#FDF9F8',      // Main app background
+  bgSurface: '#FFFFFF',      // Cards, sections
+  bgAccent: '#FAF2EF',       // Highlighted areas, progress card
+  bgInput: '#FAF8F7',        // Input field backgrounds
+
+  // Borders
+  borderDefault: '#F0E8E4',  // Section dividers, subtle borders
+  borderInput: '#E5DDD8',    // Input field borders (stronger)
+
+  // Text
+  textPrimary: '#2D2420',    // Primary text, headings
+  textSecondary: '#6B5D54',  // Secondary text, labels
+  textTertiary: '#9A8E86',   // Placeholder, hints, disabled
+
+  // Accent
+  accent: '#C9907E',         // Primary accent (buttons, icons)
+  accentSoft: '#FAE8E2',     // Accent backgrounds
+
+  // Interactive
+  buttonPrimary: '#3D352F',  // Primary button background
+  buttonText: '#FFFFFF',     // Primary button text
+
+  // Feedback
+  success: '#6B8F64',        // Success states, confirmations
+  danger: '#C27878',         // Delete, errors
+
+  // Progress
+  progressTrack: '#F5EDEA',  // Progress bar background
+  progressFill: '#CBA090',   // Progress bar fill (gradient end)
+  progressGradientStart: '#C9988A',
+  progressGradientEnd: '#DBBEB4',
+};
+```
+
+## 2.2 Typography
+
+```typescript
+const typography = {
+  // Display (large numbers)
+  displayLarge: {
+    fontSize: 52,
+    fontWeight: 700,
+    lineHeight: 1,
+  },
+  displayMedium: {
+    fontSize: 44,
+    fontWeight: 700,
+    lineHeight: 1,
+  },
+
+  // Titles
+  titleLarge: {
+    fontSize: 28,
+    fontWeight: 700,
+    lineHeight: 1,
+  },
+  titleMedium: {
+    fontSize: 20,
+    fontWeight: 600,
+    lineHeight: 1.2,
+  },
+
+  // Body
+  bodyLarge: {
+    fontSize: 17,
+    fontWeight: 500,
+    lineHeight: 1.4,
+  },
+  bodyMedium: {
+    fontSize: 15,
+    fontWeight: 500,
+    lineHeight: 1.4,
+  },
+
+  // Labels
+  labelLarge: {
+    fontSize: 16,
+    fontWeight: 600,
+    lineHeight: 1.3,
+  },
+  labelMedium: {
+    fontSize: 14,
+    fontWeight: 600,
+    lineHeight: 1.3,
+  },
+  labelSmall: {
+    fontSize: 13,
+    fontWeight: 600,
+    lineHeight: 1.3,
+  },
+
+  // Utility
+  caption: {
+    fontSize: 13,
+    fontWeight: 500,
+    lineHeight: 1.3,
+  },
+  overline: {
+    fontSize: 12,
+    fontWeight: 600,
+    letterSpacing: 0.5,
+    textTransform: 'uppercase',
+  },
+  dateHeader: {
+    fontSize: 18,
+    fontWeight: 600,
+  },
+};
+
+// Font family
+const fontFamily = '"DM Sans", -apple-system, BlinkMacSystemFont, sans-serif';
+```
+
+## 2.3 Spacing
+
+```typescript
+const spacing = {
+  // Section level
+  sectionPadding: 24,
+  sectionMargin: 20,
+
+  // Component level
+  cardPadding: 20,
+  cardRadius: 12,
+  inputPadding: 16,
+  inputRadius: 8,
+  buttonPadding: '16px 28px',
+  buttonPaddingSmall: '12px 20px',
+
+  // Element level
+  rowPadding: 14,
+  itemGap: 12,
+  labelMargin: 8,
+};
+```
+
+## 2.4 Borders
+
+```typescript
+const borders = {
+  // Radius
+  radiusNone: 0,
+  radiusSmall: 8,
+  radiusMedium: 12,
+  radiusLarge: 24,
+  radiusFull: 9999,
+
+  // Width
+  widthDefault: 1,
+  widthInput: 2,
+};
+```
+
+---
+
+# 3. Component Specifications
+
+## 3.1 CalorieProgressBar
+
+**Purpose:** Display daily calorie progress with visual bar and remaining count.
+
+### Props
+```typescript
+interface CalorieProgressBarProps {
+  current: number;    // Current calories consumed
+  goal: number;       // Daily calorie goal
+}
+```
+
+### Computed Values
+```typescript
+const percentage = Math.min((current / goal) * 100, 100);
+const remaining = goal - current;
+const isComplete = remaining <= 0;
+```
+
+### Render Structure
+```
+┌─────────────────────────────────────────────────────────────┐
+│  362                / 1800 cal                    538 left  │
+│  ████████████░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░  │
+└─────────────────────────────────────────────────────────────┘
+```
+
+### Styles
+```typescript
+// Container
+marginBottom: 20
+
+// Header row
+display: 'flex'
+justifyContent: 'space-between'
+alignItems: 'baseline'
+marginBottom: 10
+
+// Current calories
+...typography.titleLarge
+color: colors.textPrimary
+
+// Goal text
+...typography.bodyMedium
+color: colors.textTertiary
+
+// Remaining text
+...typography.caption
+color: isComplete ? colors.success : colors.textSecondary
+
+// Progress track
+height: 8
+background: colors.progressTrack
+borderRadius: 4
+overflow: 'hidden'
+
+// Progress fill
+height: '100%'
+width: `${percentage}%`
+background: `linear-gradient(90deg, ${colors.accent} 0%, ${colors.progressFill} 100%)`
+borderRadius: 4
+transition: 'width 0.3s ease'
+```
+
+---
+
+## 3.2 MacroProgressItem
+
+**Purpose:** Display single macro progress (Protein, Carbs, or Fat).
+
+### Props
+```typescript
+interface MacroProgressItemProps {
+  label: 'Protein' | 'Carbs' | 'Fat';
+  current: number;   // Current grams
+  goal: number;      // Goal grams
+}
+```
+
+### Render Structure
+```
+┌─────────────┐
+│  21 / 120g  │
+│   Protein   │
+└─────────────┘
+```
+
+### Styles
+```typescript
+// Container
+flex: 1
+textAlign: 'center'
+
+// Value row
+...typography.labelLarge
+color: colors.textPrimary
+
+// Goal portion
+...typography.caption
+color: colors.textTertiary
+
+// Label
+...typography.caption
+color: colors.textTertiary
+marginTop: 4
+```
+
+---
+
+## 3.3 ProgressCard
+
+**Purpose:** Container for calorie progress bar and macro breakdown.
+
+### Props
+```typescript
+interface ProgressCardProps {
+  calories: { current: number; goal: number };
+  protein: { current: number; goal: number };
+  carbs: { current: number; goal: number };
+  fat: { current: number; goal: number };
+}
+```
+
+### Render Structure
+```
+┌─────────────────────────────────────────────────────────────┐
+│  ┌───────────────────────────────────────────────────────┐  │
+│  │  CalorieProgressBar                                   │  │
+│  └───────────────────────────────────────────────────────┘  │
+│  ─────────────────────────────────────────────────────────  │
+│  ┌─────────────┐ │ ┌─────────────┐ │ ┌─────────────┐       │
+│  │ MacroItem   │ │ │ MacroItem   │ │ │ MacroItem   │       │
+│  │ (Protein)   │ │ │ (Carbs)     │ │ │ (Fat)       │       │
+│  └─────────────┘ │ └─────────────┘ │ └─────────────┘       │
+└─────────────────────────────────────────────────────────────┘
+```
+
+### Styles
+```typescript
+// Container
+background: colors.bgAccent
+borderRadius: 12
+padding: 20
+marginBottom: 20
+
+// Divider (between calories and macros)
+paddingTop: 16
+borderTop: `1px solid ${colors.borderDefault}`
+
+// Macro row
+display: 'flex'
+justifyContent: 'space-between'
+
+// Vertical dividers between macros
+width: 1
+background: colors.borderDefault
+```
+
+---
+
+## 3.4 FoodLogRow
+
+**Purpose:** Display a single logged food entry with delete action.
+
+### Props
+```typescript
+interface FoodLogRowProps {
+  food: {
+    id: string;
+    name: string;
+    amount: number;
+    unit: 'g' | 'oz';
+    calories: number;
+    protein: number;
+    carbs: number;
+    fat: number;
+  };
+  onDelete: (id: string) => void;
+}
+```
+
+### Render Structure
+```
+┌─────────────────────────────────────────────────────────────┐
+│  Scrambled Eggs                     15.6p · 2.4c · 16.5f 🗑  │
+│  150g · 220 cal                                             │
+└─────────────────────────────────────────────────────────────┘
+```
+
+### Styles
+```typescript
+// Container
+display: 'flex'
+alignItems: 'center'
+padding: '14px 0'
+borderBottom: `1px solid ${colors.borderDefault}`
+
+// Name
+...typography.labelMedium
+color: colors.textPrimary
+marginBottom: 4
+
+// Serving/calories
+...typography.caption
+color: colors.textTertiary
+
+// Macro text
+...typography.caption
+color: colors.textSecondary
+
+// Delete button
+background: 'none'
+border: 'none'
+padding: 4
+opacity: 0.4
+
+// Delete icon
+size: 16
+color: colors.textTertiary
+```
+
+### Behavior
+- Tap delete icon removes food immediately (no confirmation)
+- Row animates out on delete (optional enhancement)
+
+---
+
+## 3.5 FoodResultRow
+
+**Purpose:** Display a food search result with nutrition preview.
+
+### Props
+```typescript
+interface FoodResultRowProps {
+  food: {
+    id: string;
+    name: string;
+    brand: string;
+    caloriesPer100g: number;
+    proteinPer100g: number;
+    carbsPer100g: number;
+    fatPer100g: number;
+    defaultServing: number;
+    defaultUnit: 'g';
+    source: 'USDA' | 'Open Food Facts';
+  };
+  onSelect: (food: Food) => void;
+}
+```
+
+### Computed Values (for default serving display)
+```typescript
+const multiplier = food.defaultServing / 100;
+const calories = Math.round(food.caloriesPer100g * multiplier);
+const protein = Math.round(food.proteinPer100g * multiplier * 10) / 10;
+const carbs = Math.round(food.carbsPer100g * multiplier * 10) / 10;
+const fat = Math.round(food.fatPer100g * multiplier * 10) / 10;
+```
+
+### Render Structure
+```
+┌─────────────────────────────────────────────────────────────┐
+│  Chicken Breast, Grilled                         165 cal  > │
+│  Generic · 100g                              31p · 0c · 3.6f │
+└─────────────────────────────────────────────────────────────┘
+```
+
+### Styles
+```typescript
+// Container
+display: 'flex'
+justifyContent: 'space-between'
+alignItems: 'center'
+padding: '16px 0'
+borderBottom: `1px solid ${colors.borderDefault}`
+cursor: 'pointer'
+
+// Food name
+...typography.labelLarge
+color: colors.textPrimary
+marginBottom: 4
+
+// Brand/serving
+...typography.caption
+color: colors.textTertiary
+
+// Calories
+...typography.labelMedium
+color: colors.textPrimary
+
+// Macros
+...typography.caption
+color: colors.textTertiary
+
+// Chevron
+size: 20
+color: colors.textTertiary
+```
+
+---
+
+## 3.6 ServingSizeInput
+
+**Purpose:** Stepper control with unit toggle for serving size adjustment.
+
+### Props
+```typescript
+interface ServingSizeInputProps {
+  amount: number;
+  unit: 'g' | 'oz';
+  onAmountChange: (amount: number) => void;
+  onUnitChange: (unit: 'g' | 'oz') => void;
+}
+```
+
+### Render Structure
+```
+┌───────────────────────────────────────────────────┐
+│  [ - ]    ┌────────────────┐    [ + ]             │
+│           │   100    [g]   │                      │
+│           └────────────────┘                      │
+│           Tap unit to switch                      │
+└───────────────────────────────────────────────────┘
+```
+
+### Behavior
+```typescript
+// Unit toggle with conversion
+const handleUnitToggle = () => {
+  if (unit === 'g') {
+    onUnitChange('oz');
+    onAmountChange(gramsToOz(amount));
+  } else {
+    onUnitChange('g');
+    onAmountChange(ozToGrams(amount));
+  }
+};
+
+// Increment/decrement based on unit
+const increment = unit === 'g' ? 10 : 0.5;
+const handleDecrement = () => onAmountChange(Math.max(1, amount - increment));
+const handleIncrement = () => onAmountChange(amount + increment);
+```
+
+### Styles
+```typescript
+// Stepper buttons
+width: 44
+height: 44
+display: 'flex'
+alignItems: 'center'
+justifyContent: 'center'
+background: colors.bgAccent
+border: 'none'
+borderRadius: 8
+
+// Input container
+display: 'flex'
+alignItems: 'center'
+gap: 8
+background: colors.bgInput
+border: `2px solid ${colors.borderInput}`
+borderRadius: 8
+padding: '8px 12px'
+
+// Number input
+width: 60
+border: 'none'
+background: 'transparent'
+fontSize: 20
+fontWeight: 700
+textAlign: 'center'
+
+// Unit toggle button
+padding: '6px 12px'
+background: colors.accent
+color: '#fff'
+border: 'none'
+borderRadius: 6
+...typography.labelSmall
+```
+
+---
+
+## 3.7 SearchBar
+
+**Purpose:** Text input for food search.
+
+### Props
+```typescript
+interface SearchBarProps {
+  value: string;
+  onChange: (value: string) => void;
+  placeholder?: string;
+}
+```
+
+### Render Structure
+```
+┌─────────────────────────────────────────────────────────────┐
+│  🔍  Search foods...                                        │
+└─────────────────────────────────────────────────────────────┘
+```
+
+### Styles
+```typescript
+// Container
+display: 'flex'
+alignItems: 'center'
+gap: 12
+padding: '14px 16px'
+background: colors.bgInput
+border: `2px solid ${colors.borderInput}`
+borderRadius: 8
+
+// Search icon
+size: 20
+color: colors.textTertiary
+
+// Input
+flex: 1
+border: 'none'
+background: 'transparent'
+fontSize: 16
+fontWeight: 500
+color: colors.textPrimary
+outline: 'none'
+
+// Placeholder
+color: colors.textTertiary
+```
+
+### Behavior
+- Debounce input by 300ms before triggering search
+- Clear button appears when input has value (optional)
+
+---
+
+## 3.8 SuccessToast
+
+**Purpose:** Confirmation message after adding food.
+
+### Props
+```typescript
+interface SuccessToastProps {
+  message: string;
+  duration?: number;  // Auto-dismiss in ms, default 3000
+}
+```
+
+### Render Structure
+```
+┌─────────────────────────────────────────────────────────────┐
+│  ✓  Food added to log                                       │
+└─────────────────────────────────────────────────────────────┘
+```
+
+### Styles
+```typescript
+// Container
+position: 'fixed'
+bottom: 100  // Above tab bar
+left: 24
+right: 24
+background: colors.success
+color: '#fff'
+padding: '16px 20px'
+borderRadius: 8
+display: 'flex'
+alignItems: 'center'
+gap: 12
+zIndex: 400
+boxShadow: '0 4px 12px rgba(0,0,0,0.15)'
+
+// Check icon
+size: 20
+
+// Text
+...typography.labelMedium
+```
+
+### Behavior
+- Animate in from bottom
+- Auto-dismiss after duration
+- Animate out on dismiss
+
+---
+
+# 4. Screen Layouts
+
+## 4.1 Log Tab — Food Log Section
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│  padding: 24px                                              │
+│                                                             │
+│  FOOD LOG                          ← overline, textTertiary │
+│                                                             │
+│  ┌─────────────────────────────────────────────────────┐   │
+│  │  bgAccent, borderRadius: 12, padding: 20            │   │
+│  │                                                     │   │
+│  │  362                    / 1800 cal        538 left  │   │
+│  │  ████████████░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░  │   │
+│  │  ───────────────────────────────────────────────    │   │
+│  │  21 / 120g   │   28.4 / 200g   │   18.3 / 60g      │   │
+│  │   Protein    │      Carbs      │      Fat          │   │
+│  │                                                     │   │
+│  └─────────────────────────────────────────────────────┘   │
+│                                                             │
+│  ┌─────────────────────────────────────────────────────┐   │
+│  │  Scrambled Eggs                   15.6p · 2.4c · 16.5f 🗑│
+│  │  150g · 220 cal                                     │   │
+│  ├─────────────────────────────────────────────────────┤   │
+│  │  Whole Wheat Toast                5.4p · 26c · 1.8f 🗑 │
+│  │  60g · 142 cal                                      │   │
+│  └─────────────────────────────────────────────────────┘   │
+│                                                             │
+│  ┌─────────────────────────────────────────────────────┐   │
+│  │              + Add Food                             │   │ ← border: 2px solid borderInput
+│  └─────────────────────────────────────────────────────┘   │
+│                                                             │
+└─────────────────────────────────────────────────────────────┘
+```
+
+## 4.2 Food Search Screen
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│  bgSurface, padding: 16px 24px                              │
+│                                                             │
+│  ←  Add Food                                          [📷]  │ ← header
+│                                                             │
+│  ┌─────────────────────────────────────────────────────┐   │
+│  │  🔍  Search foods...                                │   │
+│  └─────────────────────────────────────────────────────┘   │
+│                                                             │
+├─────────────────────────────────────────────────────────────┤
+│  bgPrimary, flex: 1, overflow: auto, padding: 0 24px        │
+│                                                             │
+│  RECENT FOODS                      ← overline, textTertiary │
+│                                                             │
+│  ┌─────────────────────────────────────────────────────┐   │
+│  │  Chicken Breast, Grilled                   165 cal  > │ │
+│  │  Generic · 100g                        31p · 0c · 3.6f │ │
+│  ├─────────────────────────────────────────────────────┤   │
+│  │  Brown Rice, Cooked                        168 cal  > │ │
+│  │  Generic · 150g                       3.9p · 35c · 1.4f│ │
+│  ├─────────────────────────────────────────────────────┤   │
+│  │  Greek Yogurt, Plain                       100 cal  > │ │
+│  │  Fage · 170g                           18p · 4c · 0f  │ │
+│  └─────────────────────────────────────────────────────┘   │
+│                                                             │
+└─────────────────────────────────────────────────────────────┘
+```
+
+### Search Results State
+```
+│  RESULTS                           ← replaces "RECENT FOODS" │
+│                                                              │
+│  (matching foods displayed here)                             │
+```
+
+### No Results State
+```
+│                                                              │
+│           No results found                                   │
+│           Try a different search or scan a barcode          │
+│                                                              │
+```
+
+## 4.3 Barcode Scanner Screen
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│  background: #000                                           │
+│                                                             │
+│  ✕                    Scan Barcode                          │ ← header, white text
+│                                                             │
+│                                                             │
+│                                                             │
+│           ┌─────────────────────────────────┐               │
+│           │▛                             ▜│               │ ← corner accents
+│           │                               │               │
+│           │  ─────────────────────────────  │ ← scan line  │
+│           │                               │               │
+│           │▙                             ▟│               │
+│           └─────────────────────────────────┘               │
+│           280 × 180, border: 3px white, radius: 12          │
+│                                                             │
+│           Position barcode within the frame                 │
+│                                                             │
+│                                                             │
+└─────────────────────────────────────────────────────────────┘
+```
+
+## 4.4 Food Detail Screen
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│  bgSurface, padding: 16px 24px                              │
+│                                                             │
+│  ←  Food Details                                            │
+│                                                             │
+├─────────────────────────────────────────────────────────────┤
+│  bgPrimary, flex: 1, overflow: auto                         │
+│                                                             │
+│  SECTION: Food Info ────────────────────────────────────    │
+│  │  Chicken Breast, Grilled        ← titleMedium           │
+│  │  Generic · via USDA             ← caption, textTertiary │
+│  ────────────────────────────────────────────────────────   │
+│                                                             │
+│  SECTION: Serving Size ─────────────────────────────────    │
+│  │  SERVING SIZE                   ← overline              │
+│  │                                                         │
+│  │          [ - ]   ┌──────────┐   [ + ]                   │
+│  │                  │ 100  [g] │                           │
+│  │                  └──────────┘                           │
+│  │          Tap unit to switch between g and oz            │
+│  ────────────────────────────────────────────────────────   │
+│                                                             │
+│  SECTION: Nutrition ────────────────────────────────────    │
+│  │  NUTRITION                      ← overline              │
+│  │                                                         │
+│  │  ┌─────────────────────────────────────────────────┐   │
+│  │  │  Calories                                  165  │   │ ← bgAccent card
+│  │  └─────────────────────────────────────────────────┘   │
+│  │                                                         │
+│  │  Protein                                         31g   │
+│  │  ─────────────────────────────────────────────────     │
+│  │  Carbohydrates                                    0g   │
+│  │  ─────────────────────────────────────────────────     │
+│  │  Fat                                            3.6g   │
+│  ────────────────────────────────────────────────────────   │
+│                                                             │
+├─────────────────────────────────────────────────────────────┤
+│  bgSurface, padding: 16px 24px 32px                         │
+│                                                             │
+│  ┌─────────────────────────────────────────────────────┐   │
+│  │              + Add to Log                           │   │ ← buttonPrimary
+│  └─────────────────────────────────────────────────────┘   │
+│                                                             │
+└─────────────────────────────────────────────────────────────┘
+```
+
+---
+
+# 5. Data Models
+
+## 5.1 FoodLogEntry
+
+Stored in database for each logged food.
+
+```typescript
+interface FoodLogEntry {
+  id: string;                    // Unique ID (uuid or timestamp-based)
+  userId: string;                // User ID
+  date: string;                  // ISO date: "2026-01-19"
+  
+  // Food info
+  name: string;                  // "Chicken Breast, Grilled"
+  brand: string;                 // "Generic" or brand name
+  
+  // Serving
+  amount: number;                // 100
+  unit: 'g' | 'oz';             // "g"
+  
+  // Calculated nutrition (for this serving)
+  calories: number;              // 165
+  protein: number;               // 31
+  carbs: number;                 // 0
+  fat: number;                   // 3.6
+  
+  // Source tracking
+  source: 'USDA' | 'Open Food Facts';
+  sourceId: string;              // ID from source database
+  barcode?: string;              // If scanned
+  
+  // Timestamps
+  createdAt: string;             // ISO timestamp
+  updatedAt: string;             // ISO timestamp
+}
+```
+
+## 5.2 FoodSearchResult
+
+Normalized result from API search.
+
+```typescript
+interface FoodSearchResult {
+  id: string;                    // Source database ID
+  name: string;                  // Food name
+  brand: string;                 // Brand or "Generic"
+  
+  // Nutrition per 100g (normalized)
+  caloriesPer100g: number;
+  proteinPer100g: number;
+  carbsPer100g: number;
+  fatPer100g: number;
+  
+  // Default serving
+  defaultServing: number;        // 100
+  defaultUnit: 'g';              // Always grams from API
+  
+  // Source
+  source: 'USDA' | 'Open Food Facts';
+  barcode?: string;
+}
+```
+
+## 5.3 RecentFood
+
+Cached for quick re-logging.
+
+```typescript
+interface RecentFood extends FoodSearchResult {
+  lastUsed: string;              // ISO timestamp
+  useCount: number;              // Times logged
+}
+```
+
+## 5.4 DailyGoals
+
+User's daily nutrition goals.
+
+```typescript
+interface DailyGoals {
+  calories: number;              // 1800
+  protein: number;               // 120
+  carbs: number;                 // 200
+  fat: number;                   // 60
+}
+```
+
+---
+
+# 6. API Integration
+
+## 6.1 Open Food Facts
+
+### Barcode Lookup
+```
+GET https://world.openfoodfacts.org/api/v2/product/{barcode}.json
+```
+
+**Response mapping:**
+```typescript
+function mapOpenFoodFactsProduct(data: any): FoodSearchResult | null {
+  const product = data.product;
+  if (!product || data.status !== 1) return null;
+  
+  const nutriments = product.nutriments || {};
+  
+  return {
+    id: product.code,
+    name: product.product_name || 'Unknown Product',
+    brand: product.brands || 'Unknown Brand',
+    caloriesPer100g: nutriments['energy-kcal_100g'] || 0,
+    proteinPer100g: nutriments.proteins_100g || 0,
+    carbsPer100g: nutriments.carbohydrates_100g || 0,
+    fatPer100g: nutriments.fat_100g || 0,
+    defaultServing: product.serving_quantity || 100,
+    defaultUnit: 'g',
+    source: 'Open Food Facts',
+    barcode: product.code,
+  };
+}
+```
+
+### Text Search
+```
+GET https://world.openfoodfacts.org/cgi/search.pl?search_terms={query}&json=true&page_size=10
+```
+
+**Response mapping:**
+```typescript
+function mapOpenFoodFactsSearch(data: any): FoodSearchResult[] {
+  return (data.products || [])
+    .filter((p: any) => p.product_name && p.nutriments)
+    .map((product: any) => ({
+      id: product.code,
+      name: product.product_name,
+      brand: product.brands || 'Unknown',
+      caloriesPer100g: product.nutriments['energy-kcal_100g'] || 0,
+      proteinPer100g: product.nutriments.proteins_100g || 0,
+      carbsPer100g: product.nutriments.carbohydrates_100g || 0,
+      fatPer100g: product.nutriments.fat_100g || 0,
+      defaultServing: 100,
+      defaultUnit: 'g',
+      source: 'Open Food Facts',
+      barcode: product.code,
+    }));
+}
+```
+
+## 6.2 USDA FoodData Central
+
+### Text Search
+```
+GET https://api.nal.usda.gov/fdc/v1/foods/search
+  ?query={query}
+  &pageSize=10
+  &dataType=Foundation,SR%20Legacy
+  &api_key={API_KEY}
+```
+
+**Response mapping:**
+```typescript
+function mapUSDASearch(data: any): FoodSearchResult[] {
+  return (data.foods || []).map((food: any) => {
+    const nutrients = food.foodNutrients || [];
+    
+    const findNutrient = (name: string) => {
+      const n = nutrients.find((n: any) => 
+        n.nutrientName?.toLowerCase().includes(name.toLowerCase())
+      );
+      return n?.value || 0;
+    };
+    
+    return {
+      id: String(food.fdcId),
+      name: food.description,
+      brand: food.brandOwner || 'Generic',
+      caloriesPer100g: findNutrient('energy'),
+      proteinPer100g: findNutrient('protein'),
+      carbsPer100g: findNutrient('carbohydrate'),
+      fatPer100g: findNutrient('total lipid'),
+      defaultServing: 100,
+      defaultUnit: 'g',
+      source: 'USDA',
+    };
+  });
+}
+```
+
+## 6.3 Combined Search Service
+
+```typescript
+async function searchFoods(query: string): Promise<FoodSearchResult[]> {
+  const [offResults, usdaResults] = await Promise.allSettled([
+    fetchOpenFoodFacts(query),
+    fetchUSDA(query),
+  ]);
+  
+  const results: FoodSearchResult[] = [];
+  
+  if (offResults.status === 'fulfilled') {
+    results.push(...offResults.value);
+  }
+  
+  if (usdaResults.status === 'fulfilled') {
+    results.push(...usdaResults.value);
+  }
+  
+  // Deduplicate by name similarity
+  return deduplicateResults(results);
+}
+
+async function lookupBarcode(barcode: string): Promise<FoodSearchResult | null> {
+  const result = await fetchOpenFoodFactsBarcode(barcode);
+  return result;
+}
+```
+
+---
+
+# 7. Business Logic
+
+## 7.1 Nutrition Calculations
+
+### From Serving Size
+```typescript
+/**
+ * Calculate nutrition for a given serving size.
+ * All API data is normalized to per-100g values.
+ */
+function calculateNutrition(
+  food: FoodSearchResult,
+  amount: number,
+  unit: 'g' | 'oz'
+): { calories: number; protein: number; carbs: number; fat: number } {
+  // Convert to grams if needed
+  const amountInGrams = unit === 'oz' ? ozToGrams(amount) : amount;
+  
+  // Calculate multiplier (nutrition is per 100g)
+  const multiplier = amountInGrams / 100;
+  
+  return {
+    calories: Math.round(food.caloriesPer100g * multiplier),
+    protein: Math.round(food.proteinPer100g * multiplier * 10) / 10,
+    carbs: Math.round(food.carbsPer100g * multiplier * 10) / 10,
+    fat: Math.round(food.fatPer100g * multiplier * 10) / 10,
+  };
+}
+```
+
+### Unit Conversion
+```typescript
+const GRAMS_PER_OZ = 28.35;
+
+/**
+ * Convert grams to ounces, rounded to 1 decimal.
+ */
+function gramsToOz(grams: number): number {
+  return Math.round((grams / GRAMS_PER_OZ) * 10) / 10;
+}
+
+/**
+ * Convert ounces to grams, rounded to whole number.
+ */
+function ozToGrams(oz: number): number {
+  return Math.round(oz * GRAMS_PER_OZ);
+}
+```
+
+### Daily Totals
+```typescript
+/**
+ * Sum all food entries for a given date.
+ */
+function calculateDailyTotals(
+  entries: FoodLogEntry[]
+): { calories: number; protein: number; carbs: number; fat: number } {
+  return entries.reduce(
+    (acc, entry) => ({
+      calories: acc.calories + entry.calories,
+      protein: acc.protein + entry.protein,
+      carbs: acc.carbs + entry.carbs,
+      fat: acc.fat + entry.fat,
+    }),
+    { calories: 0, protein: 0, carbs: 0, fat: 0 }
+  );
+}
+```
+
+## 7.2 Search Logic
+
+### Debounce
+```typescript
+/**
+ * Debounce search input by 300ms.
+ */
+function useDebounce<T>(value: T, delay: number = 300): T {
+  const [debouncedValue, setDebouncedValue] = useState(value);
+  
+  useEffect(() => {
+    const timer = setTimeout(() => setDebouncedValue(value), delay);
+    return () => clearTimeout(timer);
+  }, [value, delay]);
+  
+  return debouncedValue;
+}
+```
+
+### Recent Foods
+```typescript
+/**
+ * Get recent foods, sorted by last used, limit 4.
+ */
+function getRecentFoods(userId: string): RecentFood[] {
+  return recentFoodsCache
+    .filter(f => f.userId === userId)
+    .sort((a, b) => new Date(b.lastUsed).getTime() - new Date(a.lastUsed).getTime())
+    .slice(0, 4);
+}
+
+/**
+ * Update recent foods cache after logging.
+ */
+function updateRecentFoods(food: FoodSearchResult, userId: string): void {
+  const existing = recentFoodsCache.find(
+    f => f.id === food.id && f.source === food.source
+  );
+  
+  if (existing) {
+    existing.lastUsed = new Date().toISOString();
+    existing.useCount += 1;
+  } else {
+    recentFoodsCache.push({
+      ...food,
+      userId,
+      lastUsed: new Date().toISOString(),
+      useCount: 1,
+    });
+  }
+  
+  // Keep only last 50 items
+  if (recentFoodsCache.length > 50) {
+    recentFoodsCache.sort((a, b) => 
+      new Date(b.lastUsed).getTime() - new Date(a.lastUsed).getTime()
+    );
+    recentFoodsCache.splice(50);
+  }
+}
+```
+
+---
+
+# 8. State Management
+
+## 8.1 Log Tab State
+
+```typescript
+interface LogTabState {
+  // Food entries for current date
+  foodEntries: FoodLogEntry[];
+  
+  // Loading states
+  isLoading: boolean;
+  
+  // Modal/screen states
+  showFoodSearch: boolean;
+  showBarcodeScanner: boolean;
+  selectedFood: FoodSearchResult | null;
+  
+  // Toast
+  showSuccessToast: boolean;
+  toastMessage: string;
+}
+```
+
+## 8.2 Food Search State
+
+```typescript
+interface FoodSearchState {
+  // Search
+  searchQuery: string;
+  searchResults: FoodSearchResult[];
+  isSearching: boolean;
+  
+  // Recent
+  recentFoods: RecentFood[];
+  
+  // Error
+  error: string | null;
+}
+```
+
+## 8.3 Food Detail State
+
+```typescript
+interface FoodDetailState {
+  // Current food
+  food: FoodSearchResult;
+  
+  // Serving input
+  amount: number;
+  unit: 'g' | 'oz';
+  
+  // Calculated (derived)
+  nutrition: {
+    calories: number;
+    protein: number;
+    carbs: number;
+    fat: number;
+  };
+}
+```
+
+## 8.4 Actions
+
+```typescript
+// Log Tab Actions
+type LogTabAction =
+  | { type: 'LOAD_ENTRIES'; payload: FoodLogEntry[] }
+  | { type: 'ADD_ENTRY'; payload: FoodLogEntry }
+  | { type: 'DELETE_ENTRY'; payload: string }  // id
+  | { type: 'OPEN_FOOD_SEARCH' }
+  | { type: 'CLOSE_FOOD_SEARCH' }
+  | { type: 'OPEN_BARCODE_SCANNER' }
+  | { type: 'CLOSE_BARCODE_SCANNER' }
+  | { type: 'SELECT_FOOD'; payload: FoodSearchResult }
+  | { type: 'CLEAR_SELECTED_FOOD' }
+  | { type: 'SHOW_TOAST'; payload: string }
+  | { type: 'HIDE_TOAST' };
+```
+
+---
+
+# 9. File Structure
+
+```
+src/
+├── components/
+│   ├── ui/
+│   │   ├── Button.tsx
+│   │   ├── Input.tsx
+│   │   ├── SearchBar.tsx
+│   │   └── Toast.tsx
+│   │
+│   ├── food/
+│   │   ├── CalorieProgressBar.tsx
+│   │   ├── MacroProgressItem.tsx
+│   │   ├── ProgressCard.tsx
+│   │   ├── FoodLogRow.tsx
+│   │   ├── FoodResultRow.tsx
+│   │   ├── ServingSizeInput.tsx
+│   │   └── index.ts
+│   │
+│   └── navigation/
+│       └── TabBar.tsx
+│
+├── screens/
+│   ├── LogScreen.tsx
+│   ├── FoodSearchScreen.tsx
+│   ├── BarcodeScannerScreen.tsx
+│   └── FoodDetailScreen.tsx
+│
+├── services/
+│   ├── api/
+│   │   ├── openFoodFacts.ts
+│   │   ├── usda.ts
+│   │   └── foodSearch.ts
+│   │
+│   ├── storage/
+│   │   ├── foodLog.ts
+│   │   └── recentFoods.ts
+│   │
+│   └── barcode/
+│       └── scanner.ts
+│
+├── hooks/
+│   ├── useFoodLog.ts
+│   ├── useFoodSearch.ts
+│   ├── useDebounce.ts
+│   └── useNutritionCalculator.ts
+│
+├── utils/
+│   ├── nutrition.ts          // calculateNutrition, calculateDailyTotals
+│   ├── units.ts              // gramsToOz, ozToGrams
+│   └── date.ts               // formatDate, getTodayISO
+│
+├── types/
+│   ├── food.ts               // FoodLogEntry, FoodSearchResult, etc.
+│   └── goals.ts              // DailyGoals
+│
+└── styles/
+    ├── colors.ts
+    ├── typography.ts
+    └── spacing.ts
+```
+
+---
+
+# 10. Implementation Checklist
+
+## Phase 1: API Integration (3-4 days)
+- [ ] Set up Open Food Facts API client
+- [ ] Set up USDA FoodData Central API client
+- [ ] Implement response mapping/normalization
+- [ ] Implement combined search service
+- [ ] Add error handling and retry logic
+- [ ] Test with various search queries and barcodes
+
+## Phase 2: Food Search Screen (2-3 days)
+- [ ] Build SearchBar component
+- [ ] Build FoodResultRow component
+- [ ] Build FoodSearchScreen layout
+- [ ] Implement search with debounce
+- [ ] Implement recent foods display
+- [ ] Add loading and error states
+- [ ] Add "no results" state
+
+## Phase 3: Barcode Scanner (2 days)
+- [ ] Install Capacitor barcode plugin
+- [ ] Build BarcodeScannerScreen UI
+- [ ] Implement camera permission handling
+- [ ] Connect barcode to Open Food Facts lookup
+- [ ] Handle "not found" case
+- [ ] Test on physical devices
+
+## Phase 4: Food Detail Screen (2 days)
+- [ ] Build ServingSizeInput component
+- [ ] Build FoodDetailScreen layout
+- [ ] Implement nutrition calculation
+- [ ] Implement unit conversion (g ↔ oz)
+- [ ] Wire up "Add to Log" action
+
+## Phase 5: Log Tab Updates (2 days)
+- [ ] Build CalorieProgressBar component
+- [ ] Build MacroProgressItem component
+- [ ] Build ProgressCard component
+- [ ] Build FoodLogRow component
+- [ ] Update LogScreen layout
+- [ ] Implement delete functionality
+- [ ] Wire up totals calculation
+
+## Phase 6: Data & Caching (1-2 days)
+- [ ] Implement food log storage
+- [ ] Implement recent foods cache
+- [ ] Add offline detection
+- [ ] Add error messages for offline state
+
+## Phase 7: Polish (2-3 days)
+- [ ] Add loading skeletons
+- [ ] Add animations (toast, row delete)
+- [ ] Test edge cases (empty states, errors)
+- [ ] Test on various screen sizes
+- [ ] Performance optimization
+- [ ] Final QA pass
+
+---
+
+# Appendix
+
+## A. Error Messages
+
+| Scenario | Message |
+|----------|---------|
+| No search results | "No results found. Try a different search or scan a barcode." |
+| Barcode not found | "Product not found. Try searching by name instead." |
+| Network error | "Unable to connect. Please check your internet connection." |
+| Camera denied | "Camera access is required to scan barcodes. Enable it in Settings." |
+| API rate limited | "Too many requests. Please try again in a moment." |
+
+## B. Accessibility
+
+- All interactive elements have minimum 44×44 touch target
+- Color contrast meets WCAG AA standards
+- Screen reader labels on icons
+- Focus states on inputs
+- Haptic feedback on successful scan (optional)
+
+## C. Reference Files
+
+- `FitTrack_FoodSearch_PRD.docx` — Product requirements
+- `FitTrack_LogTab_Dev_Handoff.md` — Previous handoff (design system)
+
+---
+
+*Document Version: 1.0*
+*Last Updated: January 2026*

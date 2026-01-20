@@ -2,10 +2,11 @@
  * HomePage (Dashboard)
  * 
  * The main dashboard screen showing all health metrics.
- * Now reads from AppContext so data is shared with Log page.
+ * Nutrition data comes from FoodLogContext (food entries).
+ * Other data (sleep, steps, cycle) comes from AppContext.
  * 
  * TypeScript Concepts:
- * - Using context with useApp() hook
+ * - Using multiple contexts together
  * - Computed values from raw data
  */
 
@@ -13,6 +14,7 @@ import { useState, useEffect } from 'react';
 
 // Context
 import { useApp, calculateCalories } from '../context/AppContext';
+import { useFoodLog } from '../context/FoodLogContext';
 import type { WeightDataPoint } from '../context/AppContext';
 
 // Dashboard components
@@ -32,8 +34,11 @@ import ChartRangeSelector from '../components/overview/ChartRangeSelector';
  * HomePage - Main dashboard screen
  */
 function HomePage() {
-  // Get data from context (shared with Log page)
+  // Get non-nutrition data from AppContext (sleep, steps, cycle, goals)
   const { todayLog, goals, cycleInfo, dashboardPrefs, getWeightHistory } = useApp();
+  
+  // Get nutrition data from FoodLogContext (food entries)
+  const { dailyTotals, isLoading: isFoodLoading } = useFoodLog();
   
   // State for loading simulation (toggle to test loading states)
   const [isLoading] = useState(false);
@@ -56,12 +61,8 @@ function HomePage() {
     loadWeightHistory();
   }, [dashboardPrefs.weight_trend, chartRange, getWeightHistory]);
   
-  // Calculate calories from macros
-  const caloriesConsumed = calculateCalories(
-    todayLog.proteinGrams,
-    todayLog.carbsGrams,
-    todayLog.fatGrams
-  );
+  // Nutrition data comes directly from food log entries
+  const caloriesConsumed = dailyTotals.calories;
 
   // Calculate calorie goal from macro goals
   const caloriesGoal = calculateCalories(
@@ -102,19 +103,19 @@ function HomePage() {
         cycle={cycleInfo ? { phase: cycleInfo.phase, day: cycleInfo.cycleDay } : undefined} 
       />
       
-      {/* Calories section - calculated from macros */}
+      {/* Calories section - from food log entries */}
       <CalorieCard 
         consumed={caloriesConsumed} 
         goal={caloriesGoal}
-        isLoading={isLoading}
+        isLoading={isLoading || isFoodLoading}
       />
       
-      {/* Macros section */}
+      {/* Macros section - data from food log entries */}
       <MacroCard 
-        protein={{ current: todayLog.proteinGrams, goal: goals.proteinGoal }}
-        carbs={{ current: todayLog.carbsGrams, goal: goals.carbsGoal }}
-        fat={{ current: todayLog.fatGrams, goal: goals.fatGoal }}
-        isLoading={isLoading}
+        protein={{ current: dailyTotals.protein, goal: goals.proteinGoal }}
+        carbs={{ current: dailyTotals.carbs, goal: goals.carbsGoal }}
+        fat={{ current: dailyTotals.fat, goal: goals.fatGoal }}
+        isLoading={isLoading || isFoodLoading}
       />
       
       {/* Steps and Sleep side by side */}

@@ -1,5 +1,5 @@
 /**
- * OverviewPage - Settings, goals, and trends screen
+ * OverviewPage - Goals, profile, and trends screen
  * 
  * TypeScript Concepts:
  * - State management for collapsible sections
@@ -8,8 +8,9 @@
  */
 
 import { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
+import { Settings } from 'lucide-react';
 import { useApp, calculateCalories } from '../context/AppContext';
-import { useAuth } from '../context/AuthContext';
 import type { WeightDataPoint, SevenDayAverages } from '../context/AppContext';
 import Section from '../components/ui/Section';
 import SectionHeader from '../components/ui/SectionHeader';
@@ -37,16 +38,11 @@ function OverviewPage() {
     getSevenDayAverages,
     setChartVisibility,
   } = useApp();
-  
-  const { signOut } = useAuth();
 
   // Collapsible section states (all start collapsed)
   const [goalsExpanded, setGoalsExpanded] = useState(false);
   const [profileExpanded, setProfileExpanded] = useState(false);
   const [cycleExpanded, setCycleExpanded] = useState(false);
-
-  // Scroll state for hiding Sign Out button
-  const [isScrolled, setIsScrolled] = useState(false);
 
   // Chart state
   const [chartRange, setChartRange] = useState<'7d' | '14d' | '30d'>('7d');
@@ -84,17 +80,6 @@ function OverviewPage() {
     loadAverages();
   }, [getSevenDayAverages]);
 
-  // Handle scroll to hide/show Sign Out button
-  useEffect(() => {
-    const handleScroll = () => {
-      const scrollY = window.scrollY;
-      setIsScrolled(scrollY > 50); // Hide when scrolled more than 50px
-    };
-
-    window.addEventListener('scroll', handleScroll);
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, []);
-
   // Get current weight from most recent daily log (not from profile)
   // const currentWeight = null; // Will be fetched from daily_logs if needed
 
@@ -107,17 +92,12 @@ function OverviewPage() {
 
   return (
     <div className="page overview-page">
-      {/* Sign Out button - fixed to top, hidden when scrolled */}
-      <button 
-        className={`header-logout overview-signout ${isScrolled ? 'scrolled' : ''}`}
-        onClick={signOut}
-      >
-        Sign Out
-      </button>
-
-      {/* Page Header */}
+      {/* Page Header with Settings link */}
       <header className="overview-page-header">
         <h1 className="overview-page-title">Your Overview</h1>
+        <Link to="/settings" className="overview-settings-link" aria-label="Settings">
+          <Settings size={24} />
+        </Link>
       </header>
 
       {/* Goals Section */}

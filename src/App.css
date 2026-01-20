@@ -115,6 +115,118 @@
   --transition-slow: 0.5s ease;
 }
 
+/* ========== THEME: SOFT BLUSH (Default) ========== */
+/* Default theme colors are defined in :root above */
+
+/* ========== THEME: SAGE GREEN ========== */
+:root[data-theme="sageGreen"] {
+  /* Backgrounds */
+  --color-bg-primary: #F7F9F7;
+  --color-bg-surface: #FFFFFF;
+  --color-bg-accent: #EFF3EE;
+  --color-bg-input: #F5F7F4;
+  
+  /* Borders */
+  --color-border-default: #E3E8E1;
+  --color-border-input: #D5DDD3;
+  
+  /* Text */
+  --color-text-primary: #2A2F2A;
+  --color-text-secondary: #5A6259;
+  --color-text-tertiary: #8B9389;
+  
+  /* Progress */
+  --color-progress-track: #E8EEDF;
+  --color-progress-fill: #8FA88C;
+  --color-gradient-start: #8FA88C;
+  --color-gradient-end: #B5C9B3;
+  
+  /* Accent */
+  --color-accent: #7D9B7A;
+  --color-accent-soft: #E5EDE3;
+  
+  /* Buttons */
+  --color-button-primary: #3A4339;
+  
+  /* Semantic */
+  --color-success: #6B8F64;
+  --color-cycle-bg: #E5EDE3;
+  --color-cycle-text: #6F8E6C;
+}
+
+/* ========== THEME: LIGHT GRAY ========== */
+:root[data-theme="lightGray"] {
+  /* Backgrounds */
+  --color-bg-primary: #F8F8F8;
+  --color-bg-surface: #FFFFFF;
+  --color-bg-accent: #F0F0F0;
+  --color-bg-input: #F5F5F5;
+  
+  /* Borders */
+  --color-border-default: #E5E5E5;
+  --color-border-input: #D9D9D9;
+  
+  /* Text */
+  --color-text-primary: #1A1A1A;
+  --color-text-secondary: #666666;
+  --color-text-tertiary: #999999;
+  
+  /* Progress */
+  --color-progress-track: #EBEBEB;
+  --color-progress-fill: #8C8C8C;
+  --color-gradient-start: #8C8C8C;
+  --color-gradient-end: #B3B3B3;
+  
+  /* Accent */
+  --color-accent: #737373;
+  --color-accent-soft: #E8E8E8;
+  
+  /* Buttons */
+  --color-button-primary: #333333;
+  
+  /* Semantic */
+  --color-success: #5C8C5C;
+  --color-cycle-bg: #E8E8E8;
+  --color-cycle-text: #737373;
+}
+
+/* ========== THEME: DARK ========== */
+:root[data-theme="dark"] {
+  /* Backgrounds */
+  --color-bg-primary: #1A1A1A;
+  --color-bg-surface: #242424;
+  --color-bg-accent: #2E2E2E;
+  --color-bg-input: #2A2A2A;
+  
+  /* Borders */
+  --color-border-default: #3A3A3A;
+  --color-border-input: #444444;
+  
+  /* Text */
+  --color-text-primary: #F5F5F5;
+  --color-text-secondary: #B8B8B8;
+  --color-text-tertiary: #808080;
+  
+  /* Progress */
+  --color-progress-track: #3A3A3A;
+  --color-progress-fill: #8C8C8C;
+  --color-gradient-start: #8C8C8C;
+  --color-gradient-end: #B3B3B3;
+  
+  /* Accent */
+  --color-accent: #A89E96;
+  --color-accent-soft: #3A3A3A;
+  
+  /* Buttons */
+  --color-button-primary: #E5E5E5;
+  --color-button-text: #1A1A1A;
+  
+  /* Semantic */
+  --color-success: #7DA87A;
+  --color-cycle-bg: #3A3A3A;
+  --color-cycle-text: #A89E96;
+}
+
 /* ========== RESET & BASE ========== */
 * {
   box-sizing: border-box;
@@ -1499,4 +1611,174 @@ body {
   margin-top: 12px;
   font-size: var(--font-size-small);
   color: #B91C1C;
+}
+
+/* ========== SETTINGS PAGE ========== */
+.settings-page {
+  min-height: 100vh;
+  background: var(--color-bg-primary);
+}
+
+/* Main content without tab bar padding */
+.main--no-tabbar {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+/* ========== SETTINGS HEADER ========== */
+.settings-header {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: var(--section-padding-y) var(--section-padding-x);
+  padding-top: calc(env(safe-area-inset-top, 0px) + var(--section-padding-y));
+  border-bottom: var(--border-width) solid var(--color-border-default);
+}
+
+.settings-back-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  background: none;
+  border: none;
+  color: var(--color-text-primary);
+  cursor: pointer;
+  border-radius: 8px;
+  margin-left: -8px;
+  transition: background var(--transition-fast);
+}
+
+.settings-back-button:hover {
+  background: var(--color-bg-accent);
+}
+
+.settings-title {
+  font-size: var(--font-size-large);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-primary);
+}
+
+/* ========== SETTINGS SECTION HEADER ========== */
+.settings-section-title {
+  font-size: var(--font-size-caption);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-tertiary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 16px;
+}
+
+/* ========== THEME GRID ========== */
+.theme-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+/* ========== THEME CARD ========== */
+.theme-card {
+  padding: 16px;
+  background: var(--color-bg-surface);
+  border: 2px solid var(--color-border-default);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: border-color var(--transition-fast);
+}
+
+.theme-card:hover {
+  border-color: var(--color-accent);
+}
+
+.theme-card.selected {
+  border-color: var(--color-accent);
+}
+
+.theme-card-swatches {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 12px;
+}
+
+.theme-card-swatch {
+  width: 24px;
+  height: 24px;
+  border-radius: 4px;
+}
+
+.theme-card-swatch--bg {
+  border: 1px solid var(--color-border-default);
+}
+
+.theme-card-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.theme-card-name {
+  font-size: 14px;
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-primary);
+}
+
+.theme-card-check {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--color-accent);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+}
+
+/* ========== SIGN OUT BUTTON ========== */
+.signout-button {
+  width: 100%;
+  padding: 16px;
+  background: transparent;
+  border: 2px solid var(--color-border-input);
+  border-radius: 8px;
+  font-size: var(--font-size-body);
+  font-weight: var(--font-weight-medium);
+  font-family: var(--font-family);
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.signout-button:hover:not(:disabled) {
+  border-color: var(--color-accent);
+  color: var(--color-accent);
+}
+
+.signout-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* ========== OVERVIEW PAGE HEADER WITH SETTINGS ========== */
+.overview-page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+
+.overview-settings-link {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  color: var(--color-text-secondary);
+  text-decoration: none;
+  border-radius: 8px;
+  transition: all var(--transition-fast);
+  margin-top: -4px;
+}
+
+.overview-settings-link:hover {
+  color: var(--color-text-primary);
+  background: var(--color-bg-accent);
 }

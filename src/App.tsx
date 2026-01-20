@@ -5,9 +5,10 @@
  * 1. Checks if user is authenticated
  * 2. Shows AuthPage if not logged in
  * 3. Shows the main app with routes if logged in
+ * 4. Hides tab bar on settings page
  */
 
-import { Routes, Route } from 'react-router-dom';
+import { Routes, Route, useLocation } from 'react-router-dom';
 import './App.css';
 
 // Auth
@@ -18,12 +19,17 @@ import AuthPage from './pages/AuthPage';
 import HomePage from './pages/HomePage';
 import LogPage from './pages/LogPage';
 import OverviewPage from './pages/OverviewPage';
+import SettingsPage from './pages/SettingsPage';
 
 // Components
 import TabBar from './components/TabBar';
 
 function App() {
   const { user, isLoading } = useAuth();
+  const location = useLocation();
+
+  // Check if we're on the settings page (hide tab bar)
+  const isSettingsPage = location.pathname === '/settings';
 
   // Show loading state while checking auth
   if (isLoading) {
@@ -47,16 +53,17 @@ function App() {
   return (
     <div className="app">
       {/* Main content area - changes based on URL */}
-      <main className="main">
+      <main className={`main ${isSettingsPage ? 'main--no-tabbar' : ''}`}>
         <Routes>
           <Route path="/" element={<HomePage />} />
           <Route path="/log" element={<LogPage />} />
           <Route path="/overview" element={<OverviewPage />} />
+          <Route path="/settings" element={<SettingsPage />} />
         </Routes>
       </main>
 
-      {/* Tab bar - always visible at bottom */}
-      <TabBar />
+      {/* Tab bar - hidden on settings page */}
+      {!isSettingsPage && <TabBar />}
     </div>
   );
 }

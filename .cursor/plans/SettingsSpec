@@ -1,0 +1,871 @@
+# FitTrack Dev Handoff
+## Settings Tab - Final Specification
+
+---
+
+# 🥇 Component Breakdown with States
+
+## 1. SettingsHeader
+
+**Component Name:** `SettingsHeader`
+
+**Props:**
+| Prop | Type | Required | Description |
+|------|------|----------|-------------|
+| onBack | () => void | Yes | Navigation handler to return to Dashboard |
+
+**States:**
+| State | Behavior |
+|-------|----------|
+| Default | Shows back arrow (left) + "Settings" title |
+| Back button hover | Arrow darkens slightly (optional) |
+
+**Notes:**
+- Back arrow: Lucide `ArrowLeft`, 24px, strokeWidth 2
+- Title uses titleMedium typography (20px, 600 weight)
+- Left-aligned layout with 16px gap between arrow and title
+
+---
+
+## 2. ThemeCard
+
+**Component Name:** `ThemeCard`
+
+**Props:**
+| Prop | Type | Required | Description |
+|------|------|----------|-------------|
+| themeKey | 'softBlush' \| 'sageGreen' \| 'lightGray' \| 'dark' | Yes | Theme identifier |
+| theme | ThemeObject | Yes | Theme configuration object |
+| isSelected | boolean | Yes | Whether this theme is currently active |
+| onSelect | (themeKey: string) => void | Yes | Selection handler |
+
+**ThemeObject Interface:**
+```typescript
+interface ThemeObject {
+  name: string;
+  colors: {
+    bgPrimary: string;
+    bgSurface: string;
+    bgAccent: string;
+    bgInput: string;
+    borderDefault: string;
+    borderInput: string;
+    textPrimary: string;
+    textSecondary: string;
+    textTertiary: string;
+    progressTrack: string;
+    accent: string;
+    accentSoft: string;
+    solidFill: string;
+    gradientStart: string;
+    gradientEnd: string;
+    success: string;
+    cycleBg: string;
+    cycleText: string;
+    buttonPrimary: string;
+  }
+}
+```
+
+**States:**
+| State | Behavior |
+|-------|----------|
+| Unselected | Shows border in borderDefault color, no checkmark |
+| Selected | Shows border in accent color, checkmark visible |
+| Hover | Subtle opacity change (optional) |
+
+**Layout:**
+```
+┌────────────────────┐
+│  ■ ■ ■             │ ← 3 color swatches (24x24px)
+│                    │
+│  Soft Blush  ✓     │ ← Theme name + checkmark
+└────────────────────┘
+```
+
+**Notes:**
+- Card padding: 16px
+- Border radius: 8px
+- Border width: 2px
+- Color swatches: 24x24px, 4px radius, 6px gap
+- Swatches show: bgPrimary (with border), accent, gradient
+- Checkmark: 18x18px circle, white check icon inside
+- Font: 14px, 600 weight, DM Sans
+
+---
+
+## 3. ThemeGrid
+
+**Component Name:** `ThemeGrid`
+
+**Props:**
+| Prop | Type | Required | Description |
+|------|------|----------|-------------|
+| themes | Record<string, ThemeObject> | Yes | All available themes |
+| currentTheme | string | Yes | Currently selected theme key |
+| onThemeChange | (themeKey: string) => void | Yes | Theme change handler |
+
+**States:**
+| State | Behavior |
+|-------|----------|
+| Default | Shows 2x2 grid of theme cards |
+| Loading | Show skeleton grid (if async) |
+
+**Grid Layout:**
+- 2 columns, auto rows
+- 12px gap between cards
+- Cards fill available width
+
+**Theme Order:**
+1. Top-left: Soft Blush
+2. Top-right: Sage Green
+3. Bottom-left: Light Gray
+4. Bottom-right: Dark
+
+---
+
+## 4. AppleHealthPlaceholder
+
+**Component Name:** `AppleHealthPlaceholder`
+
+**Props:**
+| Prop | Type | Required | Description |
+|------|------|----------|-------------|
+| None | — | — | Static placeholder component |
+
+**States:**
+| State | Behavior |
+|-------|----------|
+| Default | Shows dashed border box with placeholder text |
+
+**Notes:**
+- Replace with actual Apple Health sync component from Log tab and remove this from the log
+
+---
+
+## 5. SignOutButton
+
+**Component Name:** `SignOutButton`
+
+**Props:**
+| Prop | Type | Required | Description |
+|------|------|----------|-------------|
+| onSignOut | () => void | Yes | Sign out handler |
+
+**States:**
+| State | Behavior |
+|-------|----------|
+| Default | Neutral button with border |
+| Hover | Slight opacity change |
+| Loading | Show "Signing out..." text, disable button |
+| Error | Show error message above button |
+
+**Notes:**
+- Full width button
+- 16px vertical padding
+- 2px solid border (borderInput color)
+- 8px border radius
+- Text: textSecondary color, 16px, 600 weight
+- Background: transparent
+
+---
+
+# 🥈 Design Tokens - Theme System
+
+## Theme: Soft Blush (Default)
+
+```css
+:root[data-theme="softBlush"] {
+  /* Backgrounds */
+  --color-bg-primary: #FDF9F8;
+  --color-bg-surface: #FFFFFF;
+  --color-bg-accent: #FAF2EF;
+  --color-bg-input: #FAF8F7;
+  
+  /* Borders */
+  --color-border-default: #F0E8E4;
+  --color-border-input: #E5DDD8;
+  
+  /* Text */
+  --color-text-primary: #2D2420;
+  --color-text-secondary: #6B5D54;
+  --color-text-tertiary: #9A8E86;
+  
+  /* Progress */
+  --color-progress-track: #F5EDEA;
+  --color-progress-fill: #CBA090;
+  --color-gradient-start: #C9988A;
+  --color-gradient-end: #DBBEB4;
+  
+  /* Accent */
+  --color-accent: #C9907E;
+  --color-accent-soft: #FAE8E2;
+  
+  /* Semantic */
+  --color-success: #6B8F64;
+  --color-cycle-bg: #FAE8E2;
+  --color-cycle-text: #B07E6C;
+  --color-button-primary: #3D352F;
+}
+```
+
+## Theme: Sage Green
+
+```css
+:root[data-theme="sageGreen"] {
+  /* Backgrounds */
+  --color-bg-primary: #F7F9F7;
+  --color-bg-surface: #FFFFFF;
+  --color-bg-accent: #EFF3EE;
+  --color-bg-input: #F5F7F4;
+  
+  /* Borders */
+  --color-border-default: #E3E8E1;
+  --color-border-input: #D5DDD3;
+  
+  /* Text */
+  --color-text-primary: #2A2F2A;
+  --color-text-secondary: #5A6259;
+  --color-text-tertiary: #8B9389;
+  
+  /* Progress */
+  --color-progress-track: #E8EEDF;
+  --color-progress-fill: #8FA88C;
+  --color-gradient-start: #8FA88C;
+  --color-gradient-end: #B5C9B3;
+  
+  /* Accent */
+  --color-accent: #7D9B7A;
+  --color-accent-soft: #E5EDE3;
+  
+  /* Semantic */
+  --color-success: #6B8F64;
+  --color-cycle-bg: #E5EDE3;
+  --color-cycle-text: #6F8E6C;
+  --color-button-primary: #3A4339;
+}
+```
+
+## Theme: Light Gray
+
+```css
+:root[data-theme="lightGray"] {
+  /* Backgrounds */
+  --color-bg-primary: #F8F8F8;
+  --color-bg-surface: #FFFFFF;
+  --color-bg-accent: #F0F0F0;
+  --color-bg-input: #F5F5F5;
+  
+  /* Borders */
+  --color-border-default: #E5E5E5;
+  --color-border-input: #D9D9D9;
+  
+  /* Text */
+  --color-text-primary: #1A1A1A;
+  --color-text-secondary: #666666;
+  --color-text-tertiary: #999999;
+  
+  /* Progress */
+  --color-progress-track: #EBEBEB;
+  --color-progress-fill: #8C8C8C;
+  --color-gradient-start: #8C8C8C;
+  --color-gradient-end: #B3B3B3;
+  
+  /* Accent */
+  --color-accent: #737373;
+  --color-accent-soft: #E8E8E8;
+  
+  /* Semantic */
+  --color-success: #5C8C5C;
+  --color-cycle-bg: #E8E8E8;
+  --color-cycle-text: #737373;
+  --color-button-primary: #333333;
+}
+```
+
+## Theme: Dark
+
+```css
+:root[data-theme="dark"] {
+  /* Backgrounds */
+  --color-bg-primary: #1A1A1A;
+  --color-bg-surface: #242424;
+  --color-bg-accent: #2E2E2E;
+  --color-bg-input: #2A2A2A;
+  
+  /* Borders */
+  --color-border-default: #3A3A3A;
+  --color-border-input: #444444;
+  
+  /* Text */
+  --color-text-primary: #F5F5F5;
+  --color-text-secondary: #B8B8B8;
+  --color-text-tertiary: #808080;
+  
+  /* Progress */
+  --color-progress-track: #3A3A3A;
+  --color-progress-fill: #8C8C8C;
+  --color-gradient-start: #8C8C8C;
+  --color-gradient-end: #B3B3B3;
+  
+  /* Accent */
+  --color-accent: #A89E96;
+  --color-accent-soft: #3A3A3A;
+  
+  /* Semantic */
+  --color-success: #7DA87A;
+  --color-cycle-bg: #3A3A3A;
+  --color-cycle-text: #A89E96;
+  --color-button-primary: #E5E5E5;
+}
+```
+
+## Theme Typography (Consistent across all themes)
+
+```css
+/* Typography remains consistent across themes */
+--font-family: "DM Sans", -apple-system, BlinkMacSystemFont, sans-serif;
+
+/* Font Sizes */
+--font-size-title-medium: 20px;
+--font-size-label-medium: 14px;
+--font-size-label-large: 16px;
+--font-size-caption: 13px;
+--font-size-overline: 12px;
+
+/* Font Weights */
+--font-weight-semibold: 600;
+--font-weight-bold: 700;
+
+/* Line Heights */
+--line-height-tight: 1.2;
+--line-height-normal: 1.4;
+```
+
+---
+
+# 🥉 Screen Layout Specification
+
+## Settings Screen
+
+```
+┌─────────────────────────────────────────────┐
+│ 24px padding                                │
+│                                             │
+│  ← Settings                                 │ ← Header with back button
+│                                             │
+├─────────────────────────────────────────────┤
+│                                             │
+│  THEME                                      │ ← Section header (overline)
+│                                             │
+│  ┌────────────┐  ┌────────────┐            │
+│  │ ■ ■ ■      │  │ ■ ■ ■      │            │
+│  │            │  │            │            │ ← 2x2 Grid
+│  │ Soft Blush│  │ Sage Green │            │    12px gap
+│  │         ✓  │  │            │            │
+│  └────────────┘  └────────────┘            │
+│                                             │
+│  ┌────────────┐  ┌────────────┐            │
+│  │ ■ ■ ■      │  │ ■ ■ ■      │            │
+│  │            │  │            │            │
+│  │ Light Gray │  │ Dark       │            │
+│  │            │  │            │            │
+│  └────────────┘  └────────────┘            │
+│                                             │
+├─────────────────────────────────────────────┤
+│                                             │
+│  INTEGRATIONS                               │ ← Section header
+│                                             │
+│  ┌───────────────────────────────────────┐ │
+│  │                                       │ │
+│  │  Apple Health sync will go here      │ │ ← Placeholder
+│  │  (Moving from Log tab)                │ │    Dashed border
+│  │                                       │ │
+│  └───────────────────────────────────────┘ │
+│                                             │
+├─────────────────────────────────────────────┤
+│                                             │
+│  ┌───────────────────────────────────────┐ │
+│  │           Sign Out                    │ │ ← Button
+│  └───────────────────────────────────────┘ │
+│                                             │
+└─────────────────────────────────────────────┘
+```
+
+## Detailed Measurements
+
+**Theme Cards (in grid):**
+- Card padding: 16px
+- Card border-radius: 8px
+- Card border: 2px solid
+- Color swatches: 24x24px, 4px radius, 6px gap
+- Theme name: 14px, 600 weight
+- Checkmark circle: 18x18px
+- Gap between cards: 12px
+
+**Sections:**
+- Section padding: 24px (top/bottom/left/right)
+- Border between sections: 1px solid borderDefault
+- Section header margin-bottom: 16px
+
+**Apple Health Placeholder:**
+- Padding: 16px
+- Border: 2px dashed borderInput
+- Border radius: 8px
+- Background: bgAccent
+
+**Sign Out Button:**
+- Width: 100%
+- Padding: 16px (vertical)
+- Border: 2px solid borderInput
+- Border radius: 8px
+- Font: 16px, 600 weight
+
+---
+
+# 🔄 Interaction Details
+
+## Theme Selection Flow
+
+1. User opens Settings from Dashboard (taps gear icon)
+2. Settings page loads with Theme section at top
+3. Current theme card shows checkmark + accent border
+4. User taps different theme card
+5. **Immediate feedback:**
+   - New card gets checkmark + accent border
+   - Previous card loses checkmark + returns to default border
+6. **Theme applies instantly:**
+   - All colors update throughout entire app
+   - No loading state or confirmation needed
+   - Change persists across sessions
+7. User can switch themes as many times as desired
+8. Tapping back arrow returns to Dashboard with new theme applied
+
+**Animation:**
+- Theme card border transition: 200ms ease
+- Checkmark fade in/out: 200ms ease
+- Color changes throughout app: No animation (instant)
+
+## Sign Out Flow
+
+1. User taps "Sign Out" button
+2. **Confirmation modal appears** (recommended):
+   - "Are you sure you want to sign out?"
+   - [Cancel] [Sign Out] buttons
+3. If confirmed:
+   - Button text changes to "Signing out..."
+   - Button becomes disabled
+   - API call to invalidate session
+   - On success: Redirect to login screen
+   - On error: Show error message, re-enable button
+
+**Alternative (no confirmation):**
+- Immediate sign out on tap
+- Less safe, not recommended
+
+---
+
+# 📱 Responsive Behavior
+
+| Breakpoint | Width | Adjustments |
+|------------|-------|-------------|
+| Mobile | < 768px | 24px padding, 2-column grid |
+| Tablet | 768px - 1024px | Max-width 600px centered |
+| Desktop | > 1024px | Max-width 430px (iPhone width) centered |
+
+**Theme Grid:**
+- Always 2 columns on all screen sizes
+- Cards scale proportionally with container width
+
+---
+
+# 🎨 Theme Implementation Strategy
+
+## Option 1: CSS Variables (Recommended)
+
+**Approach:**
+- Set theme on `<html>` or `<body>` via data attribute: `data-theme="softBlush"`
+- CSS variables update automatically
+- Components reference CSS vars: `background: var(--color-bg-primary)`
+
+**Pros:**
+- Clean, declarative
+- Easy to add new themes
+- Works with SSR/static sites
+- Browser-native performance
+
+**Implementation:**
+```html
+<html data-theme="softBlush">
+```
+
+```javascript
+const setTheme = (themeName) => {
+  document.documentElement.setAttribute('data-theme', themeName);
+  localStorage.setItem('fittrack-theme', themeName);
+};
+```
+
+## Option 2: Context + State (React-specific)
+
+**Approach:**
+- Theme stored in React Context
+- Components consume theme colors via `useTheme()` hook
+- Re-render on theme change
+
+**Pros:**
+- More control in React
+- Easier to add theme-specific logic
+
+**Cons:**
+- More complex setup
+- Potential performance hit (many re-renders)
+
+## Option 3: CSS-in-JS with Theme Provider
+
+**Approach:**
+- Use styled-components, emotion, or similar
+- ThemeProvider wraps app
+- Components access theme via props
+
+**Pros:**
+- Type-safe with TypeScript
+- Co-located styles
+
+**Cons:**
+- Larger bundle size
+- Runtime overhead
+
+**Recommendation:** Use Option 1 (CSS Variables) for simplicity and performance.
+
+---
+
+# 💾 Data Persistence
+
+## Theme Storage
+
+**Where to store:**
+```javascript
+// LocalStorage (client-side)
+localStorage.setItem('fittrack-theme', 'softBlush');
+
+// Backend (user preferences)
+PATCH /api/user/preferences
+{
+  "theme": "softBlush"
+}
+```
+
+**Load on app start:**
+```javascript
+// Priority order:
+1. Check localStorage
+2. Fall back to user preference from API
+3. Fall back to default (Soft Blush)
+```
+
+**Sync strategy:**
+- Save to localStorage immediately (instant feedback)
+- Debounce API call (500ms after last change)
+- If API fails, keep localStorage value
+
+---
+
+# ✅ Dev Checklist
+
+**Components:**
+- [ ] Build SettingsHeader with back navigation
+- [ ] Build ThemeCard component with color swatches
+- [ ] Build ThemeGrid with 2x2 layout
+- [ ] Build AppleHealthPlaceholder (temporary)
+- [ ] Build SignOutButton with loading state
+
+**Theme System:**
+- [ ] Define all 4 theme color palettes in CSS
+- [ ] Implement theme switching mechanism (CSS vars or Context)
+- [ ] Add data-theme attribute to root element
+- [ ] Test all components in all 4 themes
+- [ ] Verify gradients render correctly in each theme
+- [ ] Test dark mode specifically (contrast, readability)
+
+**State Management:**
+- [ ] Set up theme state (useState or Context)
+- [ ] Implement theme persistence (localStorage)
+- [ ] Add API integration for theme preference
+- [ ] Handle theme load on app start
+- [ ] Add theme sync across tabs (optional: BroadcastChannel)
+
+**Navigation:**
+- [ ] Wire up Settings icon on Dashboard
+- [ ] Implement back button navigation
+- [ ] Maintain active tab state when returning to Dashboard
+- [ ] Test deep linking to Settings (optional)
+
+**Integration Preparation:**
+- [ ] Identify Apple Health sync component in Log tab
+- [ ] Plan migration of component to Settings
+- [ ] Update API calls if endpoint changes
+- [ ] Test sync functionality after move
+
+**Sign Out:**
+- [ ] Implement confirmation modal
+- [ ] Add loading state during sign out
+- [ ] Handle sign out API call
+- [ ] Clear user data from localStorage
+- [ ] Redirect to login screen on success
+- [ ] Show error message on failure
+
+**Testing:**
+- [ ] Test theme switching in all tabs (Dashboard, Log, Overview)
+- [ ] Verify theme persists after refresh
+- [ ] Test sign out flow end-to-end
+- [ ] Test on iOS Safari (primary target)
+- [ ] Test on Chrome, Firefox (web fallback)
+- [ ] Verify accessibility (WCAG AA contrast in all themes)
+- [ ] Test with screen reader (Settings navigation)
+
+---
+
+# ❓ Questions for Engineering
+
+### **1. Theme Switching Mechanism**
+
+Which implementation approach should we use?
+- **Option A:** CSS Variables + data-theme attribute (recommended)
+- **Option B:** React Context + useTheme hook
+- **Option C:** CSS-in-JS (styled-components / emotion)
+
+**Recommendation:** Option A (simplest, best performance)
+
+### **2. Theme Persistence Priority**
+
+How should we handle theme preference conflicts?
+- **Scenario:** User has theme "A" in localStorage, theme "B" in database
+- **Options:**
+  - A) localStorage always wins (fast, client-first)
+  - B) Database always wins (consistent across devices)
+  - C) Last-updated timestamp wins (complex but accurate)
+
+**Recommendation:** Option B (better UX for multi-device users)
+
+### **3. Dark Mode Auto-Detection**
+
+Should we respect system dark mode preference?
+```javascript
+const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+```
+
+- **If yes:** Auto-select dark theme on first launch if system is dark
+- **If no:** Always default to Soft Blush
+
+**Recommendation:** Yes, respect system preference for better UX
+
+### **4. Theme Transition Animation**
+
+Should color changes be animated when switching themes?
+- **Option A:** Instant change (current implementation)
+- **Option B:** 200ms ease transition on all colors
+- **Option C:** No animation, but fade out/in the entire screen
+
+**Recommendation:** Option A (instant) - less jarring, more responsive feel
+
+### **5. Apple Health Component Migration**
+
+When moving Apple Health sync from Log tab:
+- Does the component need refactoring?
+- Are there dependencies on Log tab state?
+- Should API endpoint change? (e.g., `/log/sync` → `/settings/integrations/sync`)
+- Any permissions/entitlements that need updating?
+
+**Request:** Audit needed before migration
+
+### **6. Sign Out Confirmation**
+
+Should sign out require confirmation?
+- **Yes (recommended):** Show modal: "Are you sure? [Cancel] [Sign Out]"
+- **No:** Immediate sign out on tap
+
+**Recommendation:** Yes - accidental taps are common
+
+### **7. Theme Analytics**
+
+Should we track which themes users prefer?
+- Event: `theme_changed`, properties: `{from: 'softBlush', to: 'sageGreen'}`
+- Helps inform future design decisions
+
+**Question:** Do we have analytics infrastructure set up?
+
+### **8. Offline Behavior**
+
+What happens if theme change fails to sync to backend?
+- **Option A:** Keep localStorage value, retry on reconnect
+- **Option B:** Show error, revert to last-synced theme
+- **Option C:** Silent fail, user's local theme persists
+
+**Recommendation:** Option A (best UX)
+
+---
+
+# 📝 File Structure (Suggested)
+
+```
+src/
+├── components/
+│   ├── settings/
+│   │   ├── SettingsHeader.tsx
+│   │   ├── ThemeCard.tsx
+│   │   ├── ThemeGrid.tsx
+│   │   ├── AppleHealthPlaceholder.tsx
+│   │   └── SignOutButton.tsx
+│   ├── ui/
+│   │   └── Section.tsx (reuse from Dashboard)
+├── screens/
+│   └── SettingsScreen.tsx
+├── context/
+│   └── ThemeContext.tsx (if using Context approach)
+├── hooks/
+│   └── useTheme.ts (if using Context approach)
+├── styles/
+│   ├── themes.css (all 4 theme definitions)
+│   └── tokens.css (shared typography)
+├── utils/
+│   ├── themeUtils.ts (setTheme, getTheme, etc.)
+│   └── storage.ts (localStorage helpers)
+└── types/
+    └── theme.ts
+```
+
+---
+
+# 🎨 Typography (Shared Across All Themes)
+
+Typography remains consistent regardless of selected theme.
+
+```css
+/* Shared Typography */
+--font-family: "DM Sans", -apple-system, BlinkMacSystemFont, sans-serif;
+
+/* Settings-specific sizes */
+--font-size-settings-header: 20px;      /* "Settings" title */
+--font-size-theme-name: 14px;           /* Theme card labels */
+--font-size-section-header: 12px;       /* "THEME", "INTEGRATIONS" */
+--font-size-button: 16px;               /* Sign Out button */
+
+/* Weights */
+--font-weight-semibold: 600;
+--font-weight-bold: 700;
+```
+
+---
+
+# 🔗 Navigation Flow
+
+```
+Dashboard (gear icon) 
+    ↓
+Settings Page
+    ↓
+[User changes theme]
+    ↓
+Theme applies instantly
+    ↓
+[User taps back arrow]
+    ↓
+Return to Dashboard (theme persists)
+```
+
+**Important:** Settings is a separate page, NOT a modal. This means:
+- Settings has its own route (e.g., `/settings`)
+- Back button uses browser/app navigation
+- Tab bar is hidden when on Settings page
+- Deep linking to Settings should work
+
+---
+
+# 🚨 Edge Cases to Handle
+
+1. **Theme load race condition:**
+   - What if localStorage loads before API response?
+   - Solution: Show default theme, then switch when API responds
+
+2. **Invalid theme in localStorage:**
+   - User manually edits localStorage to invalid theme
+   - Solution: Validate theme key, fall back to default if invalid
+
+3. **Rapid theme switching:**
+   - User taps multiple themes quickly
+   - Solution: Debounce API calls, but apply UI changes immediately
+
+4. **Theme not applied to modals/toasts:**
+   - Floating UI might not inherit theme
+   - Solution: Ensure all portals read from CSS vars
+
+5. **Dark theme readability issues:**
+   - Some UI elements might have poor contrast
+   - Solution: Test all components, adjust dark theme colors if needed
+
+6. **iOS dark mode override:**
+   - System might force dark mode on website
+   - Solution: Add meta tag to prevent: `<meta name="color-scheme" content="light dark">`
+
+---
+
+# 📊 Mock Data
+
+```javascript
+// Theme Configuration
+const themes = {
+  softBlush: {
+    name: 'Soft Blush',
+    colors: { /* see theme tokens above */ }
+  },
+  sageGreen: {
+    name: 'Sage Green',
+    colors: { /* see theme tokens above */ }
+  },
+  lightGray: {
+    name: 'Light Gray',
+    colors: { /* see theme tokens above */ }
+  },
+  dark: {
+    name: 'Dark',
+    colors: { /* see theme tokens above */ }
+  }
+};
+
+// User Preferences (from API)
+const mockUserPreferences = {
+  theme: 'softBlush',
+  appleHealthConnected: false,
+  // ... other preferences
+};
+```
+
+---
+
+# 🎯 Accessibility Requirements
+
+**Theme Cards:**
+- Ensure 4.5:1 contrast ratio between text and background in all themes
+- Add aria-label: "Select Soft Blush theme" (or similar)
+- Checkmark should have aria-label: "Currently selected"
+- Use semantic HTML: `<button>` for cards (not divs)
+
+**Sign Out Button:**
+- Use `<button>` element (not div + onClick)
+- Add aria-label: "Sign out of FitTrack"
+- Show focus outline on keyboard navigation
+
+**Back Button:**
+- aria-label: "Back to Dashboard"
+- Large tap target (40x40px minimum)
+
+**Dark Theme Specific:**
+- Verify WCAG AA contrast: 4.5:1 for normal text, 3:1 for large text
+- Test with Color Oracle to simulate color blindness
+- Ensure progress bars are visible (not too low contrast)
+
+---
+
+*Generated: December 2025*
+*Questions? Ping the PM.*
